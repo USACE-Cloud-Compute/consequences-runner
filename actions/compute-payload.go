@@ -17,7 +17,8 @@ import (
 	"github.com/USACE/go-consequences/structureprovider"
 	"github.com/USACE/go-consequences/structures"
 	"github.com/usace-cloud-compute/cc-go-sdk"
-	lrw "github.com/usace-cloud-compute/consequences-runner/resultswriters"
+	lrw "github.com/usace-cloud-compute/consequences-runner/crresultswriters"
+	"github.com/usace-cloud-compute/consequences-runner/structureproviders"
 )
 
 const (
@@ -124,12 +125,27 @@ func (ar *ComputeEventAction) Run() error {
 	//initalize a structure provider
 	// inventory path expected to be a local path
 	// damage function path expected to be a local path
-	sp, err := structureprovider.InitStructureProviderwithOcctypePath(inventoryPath, tablename, inventoryDriver, damageFunctionPath)
-	sp.SetDeterministic(true)
-	if err != nil {
-		return err
+	var abstractSP consequences.StreamProvider
+	var sr string
+	if inventoryDriver == "MILLIMAN" {
+		sp, err := structureproviders.InitMillimanStructureProviderwithOcctypePath(inventoryPath, damageFunctionPath)
+		sp.SetDeterministic(true)
+		if err != nil {
+			return err
+		}
+		fmt.Sprintln(sp.FilePath)
+		sr = sp.SpatialReference()
+		abstractSP = sp
+	} else {
+		sp, err := structureprovider.InitStructureProviderwithOcctypePath(inventoryPath, tablename, inventoryDriver, damageFunctionPath)
+		sp.SetDeterministic(true)
+		if err != nil {
+			return err
+		}
+		fmt.Sprintln(sp.FilePath)
+		sr = sp.SpatialReference()
+		abstractSP = sp
 	}
-	fmt.Sprintln(sp.FilePath)
 
 	//initalize a results writer
 	var rw consequences.ResultsWriter
@@ -152,7 +168,6 @@ func (ar *ComputeEventAction) Run() error {
 		}
 	} else {
 		outfp := fmt.Sprintf("%s/%s", localData, outputFileName)
-		sr := sp.SpatialReference()
 
 		rw, err = resultswriters.InitSpatialResultsWriter_WKT_Projected(outfp, outputLayerName, outputDriver, sr)
 		if err != nil {
@@ -169,7 +184,7 @@ func (ar *ComputeEventAction) Run() error {
 		log.Panicf("Unable to get the raster bounding box: %s", err)
 	}
 	fmt.Println(bbox.ToString())
-	sp.ByBbox(bbox, func(f consequences.Receptor) {
+	abstractSP.ByBbox(bbox, func(f consequences.Receptor) {
 		//ProvideHazard works off of a geography.Location
 		d, err2 := hp.Hazard(geography.Location{X: f.Location().X, Y: f.Location().Y})
 		//compute damages based on hazard being able to provide depth
@@ -332,23 +347,38 @@ func (ar *ComputeFrequencyAction) Run() error {
 	}
 	// inventory path expected to be a local path
 	// damage function path expected to be a local path
-	sp, err := structureprovider.InitStructureProviderwithOcctypePath(inventoryPathKey, tablename, inventoryDriver, damageFunctionPath)
-	sp.SetDeterministic(true)
-	if err != nil {
-		return err
+	var abstractSP consequences.StreamProvider
+	var sr string
+	if inventoryDriver == "MILLIMAN" {
+		sp, err := structureproviders.InitMillimanStructureProviderwithOcctypePath(inventoryPathKey, damageFunctionPath)
+		sp.SetDeterministic(true)
+		if err != nil {
+			return err
+		}
+		fmt.Sprintln(sp.FilePath)
+		sr = sp.SpatialReference()
+		abstractSP = sp
+	} else {
+		sp, err := structureprovider.InitStructureProviderwithOcctypePath(inventoryPathKey, tablename, inventoryDriver, damageFunctionPath)
+		sp.SetDeterministic(true)
+		if err != nil {
+			return err
+		}
+		fmt.Sprintln(sp.FilePath)
+		sr = sp.SpatialReference()
+		abstractSP = sp
 	}
-	fmt.Sprintln(sp.FilePath)
 	//results writer
 	outfp := outputFileName //fmt.Sprintf("%s/%s", localData, outputFileName)
 	var rw consequences.ResultsWriter
-	sr := sp.SpatialReference()
-	rw, err = resultswriters.InitSpatialResultsWriter_WKT_Projected(outfp, outputLayerName, outputDriver, sr)
+
+	rw, err := resultswriters.InitSpatialResultsWriter_WKT_Projected(outfp, outputLayerName, outputDriver, sr)
 	if err != nil {
 		return err
 	}
 	defer rw.Close()
 
-	ComputeMultiFrequency(hps, frequencies, sp, rw)
+	ComputeMultiFrequency(hps, frequencies, abstractSP, rw)
 	return nil
 }
 func ComputeMultiFrequency(hps []hazardproviders.HazardProvider, freqs []float64, sp consequences.StreamProvider, w consequences.ResultsWriter) {

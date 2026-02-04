@@ -1,5 +1,13 @@
 package actions
 
+import (
+	"fmt"
+	"os"
+	"strconv"
+	"strings"
+	"testing"
+)
+
 /*
 import (
 	"fmt"
@@ -100,7 +108,8 @@ func Test_SummarizeOutputsToWatershedFrequency(t *testing.T) {
 		fmt.Println(err)
 		t.Fail()
 	}
-}
+}*/
+
 func Test_PostProcessCsv(t *testing.T) {
 	path := "/workspaces/consequences-runner/data/scenario-simple-levees/simulations/summary-outputs/realization_1_block_consequences.csv"
 	bytes, err := os.ReadFile(path)
@@ -149,10 +158,10 @@ func Test_PostProcessCsv(t *testing.T) {
 		}
 	}
 	count := len(rows)
-	fmt.Printf("Depth Equals Velocity : %.4f\n", float32(depthequalsvelocity)/float32(count))
-	fmt.Printf("Damage Equals Depth : %.4f\n", float32(damageequalsdepth)/float32(count))
-	fmt.Printf("Damage Equals Velocity : %.4f\n", float32(velocityequalsdamage)/float32(count))
-	fmt.Printf("None Equal : %.4f\n", float32(noneequal)/float32(count))
+	fmt.Printf("Depth Event Number Equals Velocity Event Number : %.4f\n", float32(depthequalsvelocity)/float32(count))
+	fmt.Printf("Damage Event Number Equals Depth Event Number : %.4f\n", float32(damageequalsdepth)/float32(count))
+	fmt.Printf("Damage Event Number Equals Velocity Event Number : %.4f\n", float32(velocityequalsdamage)/float32(count))
+	fmt.Printf("No Event Numbers Equal : %.4f\n", float32(noneequal)/float32(count))
 }
 
 type BlockRow struct {
@@ -164,4 +173,4 @@ type BlockRow struct {
 	DepthEventID    int
 	VelocityEventId int
 }
-*/
+

@@ -19,6 +19,7 @@ import (
 	"github.com/USACE/go-consequences/structures"
 	"github.com/usace-cloud-compute/cc-go-sdk"
 	lhp "github.com/usace-cloud-compute/consequences-runner/hazardproviders"
+	"github.com/usace-cloud-compute/consequences-runner/structureproviders"
 )
 
 const (
@@ -118,23 +119,38 @@ func (ar *FemaMultiParameterFrequencyBasedAction) Run() error {
 	}
 	// inventory path expected to be a local path
 	// damage function path expected to be a local path
-	sp, err := structureprovider.InitStructureProviderwithOcctypePath(inventoryPathKey, tablename, inventoryDriver, damageFunctionPath)
-	sp.SetDeterministic(true)
-	if err != nil {
-		return err
+	var abstractSP consequences.StreamProvider
+	var sr string
+	if inventoryDriver == "MILLIMAN" {
+		sp, err := structureproviders.InitMillimanStructureProviderwithOcctypePath(inventoryPathKey, damageFunctionPath)
+		sp.SetDeterministic(true)
+		if err != nil {
+			return err
+		}
+		fmt.Sprintln(sp.FilePath)
+		sr = sp.SpatialReference()
+		abstractSP = sp
+	} else {
+		sp, err := structureprovider.InitStructureProviderwithOcctypePath(inventoryPathKey, tablename, inventoryDriver, damageFunctionPath)
+		sp.SetDeterministic(true)
+		if err != nil {
+			return err
+		}
+		fmt.Sprintln(sp.FilePath)
+		sr = sp.SpatialReference()
+		abstractSP = sp
 	}
-	fmt.Sprintln(sp.FilePath)
 	//results writer
 	outfp := outputFileName //fmt.Sprintf("%s/%s", localData, outputFileName)
 	var rw consequences.ResultsWriter
-	sr := sp.SpatialReference()
-	rw, err = resultswriters.InitSpatialResultsWriter_WKT_Projected(outfp, outputLayerName, outputDriver, sr)
+
+	rw, err := resultswriters.InitSpatialResultsWriter_WKT_Projected(outfp, outputLayerName, outputDriver, sr)
 	if err != nil {
 		return err
 	}
 	defer rw.Close()
 
-	ComputeMultiFrequencyMeanStdev(hps, frequencies, sp, rw)
+	ComputeMultiFrequencyMeanStdev(hps, frequencies, abstractSP, rw)
 	return nil
 }
 func ComputeMultiFrequencyMeanStdev(hps []lhp.Mean_and_stdev_HazardProvider, freqs []float64, sp consequences.StreamProvider, w consequences.ResultsWriter) {
@@ -359,23 +375,39 @@ func (ar *FemaSingleParameterFrequencyBasedAction) Run() error {
 	}
 	// inventory path expected to be a local path
 	// damage function path expected to be a local path
-	sp, err := structureprovider.InitStructureProviderwithOcctypePath(inventoryPathKey, tablename, inventoryDriver, damageFunctionPath)
-	sp.SetDeterministic(true)
-	if err != nil {
-		return err
+	var abstractSP consequences.StreamProvider
+	var sr string
+	if inventoryDriver == "MILLIMAN" {
+		sp, err := structureproviders.InitMillimanStructureProviderwithOcctypePath(inventoryPathKey, damageFunctionPath)
+		sp.SetDeterministic(true)
+		if err != nil {
+			return err
+		}
+		fmt.Sprintln(sp.FilePath)
+		sr = sp.SpatialReference()
+		abstractSP = sp
+	} else {
+		sp, err := structureprovider.InitStructureProviderwithOcctypePath(inventoryPathKey, tablename, inventoryDriver, damageFunctionPath)
+		sp.SetDeterministic(true)
+		if err != nil {
+			return err
+		}
+		fmt.Sprintln(sp.FilePath)
+		sr = sp.SpatialReference()
+		abstractSP = sp
 	}
-	fmt.Sprintln(sp.FilePath)
+
 	//results writer
 	outfp := outputFileName //fmt.Sprintf("%s/%s", localData, outputFileName)
 	var rw consequences.ResultsWriter
-	sr := sp.SpatialReference()
-	rw, err = resultswriters.InitSpatialResultsWriter_WKT_Projected(outfp, outputLayerName, outputDriver, sr)
+
+	rw, err := resultswriters.InitSpatialResultsWriter_WKT_Projected(outfp, outputLayerName, outputDriver, sr)
 	if err != nil {
 		return err
 	}
 	defer rw.Close()
 
-	ComputeMultiFrequencyMeanStdev_SingleParameter(hps, frequencies, sp, rw)
+	ComputeMultiFrequencyMeanStdev_SingleParameter(hps, frequencies, abstractSP, rw)
 	return nil
 }
 func ComputeMultiFrequencyMeanStdev_SingleParameter(hps []lhp.SingleParameter_Mean_and_stdev_HazardProvider, freqs []float64, sp consequences.StreamProvider, w consequences.ResultsWriter) {

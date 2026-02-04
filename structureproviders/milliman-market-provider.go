@@ -1,9 +1,11 @@
 package structureproviders
 
 import (
-	"errors"
 	"fmt"
 	"math/rand"
+	"os"
+	"strconv"
+	"strings"
 
 	"github.com/USACE/go-consequences/consequences"
 	"github.com/USACE/go-consequences/geography"
@@ -11,51 +13,131 @@ import (
 	"github.com/dewberry/gdal"
 )
 
-type gdalDataSet struct {
+type MillimanDataSet struct {
 	FilePath              string
-	LayerName             string
-	schemaIDX             []int
-	ds                    *gdal.DataSource
+	assets                []MillimanAsset
+	OccTypeProvider       structures.JsonOccupancyTypeProvider
+	FoundationUncertainty *structures.FoundationUncertainty
 	deterministic         bool
 	seed                  int64
-	OccTypeProvider       structures.OccupancyTypeProvider
-	FoundationUncertainty *structures.FoundationUncertainty
+}
+type MillimanAsset struct {
+	acctnum              string
+	location             string
+	bldg_ded             float64
+	bldg_limit           float64
+	cnt_ded              float64
+	cnt_limit            float64
+	state                string
+	postcode             int
+	lon                  float64
+	lat                  float64
+	bldg_val             float64
+	cnt_val              float64
+	const_code           int
+	num_stories          int
+	yr_built             int
+	foundation_type      int
+	basement             bool
+	first_floor_elev     int     //seemingly this is foundation height not ffe.
+	base_flood_elevation float64 //unknown or int in the files i see... must convert unknown to -901 or something.
+	elev_ft              float64
 }
 
-func StructureSchema() []string {
-	s := make([]string, 10)
-	s[0] = "accntnum"
-	s[1] = "LAT"
-	s[2] = "LON"
-	s[3] = "BLDG_VALUE"
-	s[4] = "CNT_VALUE"
-	s[5] = "FoundationType"
-	s[6] = "NUM_STORIES"
-	s[7] = "elev_ft"
-	s[8] = "CONSTR_CODE"
-	s[9] = "FIRST_FLOOR_ELEV"
+func (a MillimanAsset) toStructureDeterministic(m map[string]structures.OccupancyTypeDeterministic) structures.StructureDeterministic {
+	basementType := "NB"
+	if a.basement {
+		basementType = "WB"
+	}
+	occtype := fmt.Sprintf("RES1-%vS%v", a.num_stories, basementType)
+	//add construction type
+	ot, ok := m[occtype]
+	if !ok {
+		ot = m["RES1-1SNB"]
+	}
+	s := structures.StructureDeterministic{
+		BaseStructure: structures.BaseStructure{
+			Name:            a.acctnum,
+			DamCat:          "RES",
+			CBFips:          "12345",
+			X:               a.lon,
+			Y:               a.lat,
+			GroundElevation: a.elev_ft,
+		},
+		FoundType:        strconv.Itoa(a.foundation_type),
+		FirmZone:         "unknown",
+		ConstructionType: strconv.Itoa(a.const_code),
+		StructVal:        a.bldg_val,
+		ContVal:          a.cnt_val,
+		FoundHt:          float64(a.first_floor_elev),
+		NumStories:       int32(a.num_stories),
+		OccType:          ot,
+	}
 	return s
 }
-
-func OptionalSchema() []string {
-	s := make([]string, 8)
-
+func (a MillimanAsset) toStructureStochastic(m map[string]structures.OccupancyTypeStochastic) structures.StructureStochastic {
+	basementType := "NB"
+	if a.basement {
+		basementType = "WB"
+	}
+	occtype := fmt.Sprintf("RES1-%vS%v", a.num_stories, basementType)
+	//add construction type
+	ot, ok := m[occtype]
+	if !ok {
+		ot = m["RES1-1SNB"]
+	}
+	s := structures.StructureStochastic{
+		BaseStructure: structures.BaseStructure{
+			Name:            a.acctnum,
+			DamCat:          "RES",
+			CBFips:          "12345",
+			X:               a.lon,
+			Y:               a.lat,
+			GroundElevation: a.elev_ft,
+		},
+		FoundType:        strconv.Itoa(a.foundation_type),
+		FirmZone:         "unknown",
+		ConstructionType: strconv.Itoa(a.const_code),
+		StructVal:        consequences.ParameterValue{Value: a.bldg_val},
+		ContVal:          consequences.ParameterValue{Value: a.cnt_val},
+		FoundHt:          consequences.ParameterValue{Value: float64(a.first_floor_elev)},
+		NumStories:       int32(a.num_stories),
+		OccType:          ot,
+	}
 	return s
 }
-func InitStructureProvider(filepath string) (*gdalDataSet, error) {
+func (mds *MillimanDataSet) filter(bbox geography.BBox) *MillimanDataSet {
+	newds := MillimanDataSet{
+		FilePath:              mds.FilePath,
+		OccTypeProvider:       mds.OccTypeProvider,
+		deterministic:         mds.deterministic,
+		seed:                  mds.seed,
+		FoundationUncertainty: mds.FoundationUncertainty,
+	}
+	newAssets := make([]MillimanAsset, 0)
+	for _, a := range mds.assets {
+		if contains(bbox, geography.Location{X: a.lon, Y: a.lat}) {
+			newAssets = append(newAssets, a)
+		}
+	}
+	newds.assets = newAssets
+	return &newds
+}
+func contains(bbox geography.BBox, p geography.Location) bool {
+	return bbox.Bbox[0] <= p.X && p.X <= bbox.Bbox[2] && bbox.Bbox[3] <= p.Y && p.Y <= bbox.Bbox[1]
+}
+func InitMillimanStructureProvider(filepath string) (*MillimanDataSet, error) {
 	//validation?
 	gpk, err := initalizestructureprovider(filepath)
-	gpk.setOcctypeProvider(false, "")
-	gpk.UpdateFoundationHeightUncertainty(false, "")
 	return &gpk, err
 }
-func InitStructureProviderwithOcctypePath(filepath string, occtypefp string) (*gdalDataSet, error) {
+func InitMillimanStructureProviderwithOcctypePath(filepath string, occtypefp string) (*MillimanDataSet, error) {
 	//validation?
 	gpk, err := initalizestructureprovider(filepath)
 	gpk.setOcctypeProvider(true, occtypefp)
 	return &gpk, err
 }
-func (ds *gdalDataSet) UpdateFoundationHeightUncertainty(useFile bool, foundationHeightUncertaintyJsonFilePath string) {
+func (ds *MillimanDataSet) UpdateFoundationHeightUncertainty(useFile bool, foundationHeightUncertaintyJsonFilePath string) {
 	if useFile {
 		fh, err := structures.InitFoundationUncertaintyFromFile(foundationHeightUncertaintyJsonFilePath)
 		if err != nil {
@@ -67,222 +149,181 @@ func (ds *gdalDataSet) UpdateFoundationHeightUncertainty(useFile bool, foundatio
 		ds.FoundationUncertainty = fh
 	}
 }
-func initalizestructureprovider(filepath string) (gdalDataSet, error) {
-	driverOut := gdal.OGRDriverByName("CSV")
-	ds, dsok := driverOut.Open(filepath, int(gdal.ReadOnly))
-	if !dsok {
-		return gdalDataSet{}, errors.New("error opening structure provider of type CSV")
+func tofloat(s string) float64 {
+	f, err := strconv.ParseFloat(s, 64)
+	if err != nil {
+		panic(err)
+	}
+	return f
+}
+func toint(s string) int {
+	i, err := strconv.ParseInt(s, 10, 0)
+	if err != nil {
+		panic(err)
+	}
+	return int(i)
+}
+func tobfe(s string) float64 {
+	if s == "unknown" {
+		return -901.00
+	}
+	f, err := strconv.ParseFloat(s, 64)
+	if err != nil {
+		panic(err)
+	}
+	return f
+}
+func tobool(s string) bool {
+	return s == "1"
+
+}
+func initalizestructureprovider(filepath string) (MillimanDataSet, error) {
+	data, err := os.ReadFile(filepath)
+	if err != nil {
+		return MillimanDataSet{}, err
+	}
+	rows := strings.Split(string(data), "\r\n")
+	assets := make([]MillimanAsset, len(rows)-2)
+	for i, r := range rows {
+		if i != 0 {
+			vals := strings.Split(r, ",")
+			if len(vals) == 21 {
+				asset := MillimanAsset{
+					acctnum:              vals[0],
+					location:             vals[1],
+					bldg_ded:             tofloat(vals[2]),
+					bldg_limit:           tofloat(vals[3]),
+					cnt_ded:              tofloat(vals[4]),
+					cnt_limit:            tofloat(vals[5]),
+					state:                vals[6],
+					postcode:             toint(vals[7]),
+					lon:                  tofloat(vals[9]),
+					lat:                  tofloat(vals[10]),
+					bldg_val:             tofloat(vals[11]),
+					cnt_val:              tofloat(vals[12]),
+					const_code:           toint(vals[13]),
+					num_stories:          toint(vals[14]),
+					yr_built:             toint(vals[15]),
+					foundation_type:      toint(vals[16]),
+					basement:             tobool(vals[17]),
+					first_floor_elev:     toint(vals[18]),
+					base_flood_elevation: tobfe(vals[19]),
+					elev_ft:              tofloat(vals[20]),
+				}
+				assets[i-1] = asset
+			}
+		}
+	}
+	otp := structures.JsonOccupancyTypeProvider{}
+	otp.InitDefault()
+	fh, err := structures.InitFoundationUncertainty()
+	if err != nil {
+		return MillimanDataSet{}, err
+	}
+	m := MillimanDataSet{
+		FilePath:              filepath,
+		assets:                assets,
+		OccTypeProvider:       otp,
+		deterministic:         true,
+		seed:                  1234,
+		FoundationUncertainty: fh,
 	}
 
-	l := ds.LayerByName(ds.LayerByIndex(0).Name())
-	def := l.Definition()
-	s := StructureSchema()
-	sIDX := make([]int, len(s))
-	for i, f := range s {
-		idx := def.FieldIndex(f)
-		if idx < 0 {
-			return gdalDataSet{}, errors.New("gdal dataset at path " + filepath + " Expected field named " + f + " none was found")
-		}
-		sIDX[i] = idx
-	}
-	gpk := gdalDataSet{FilePath: filepath, LayerName: ds.LayerByIndex(0).Name(), schemaIDX: sIDX, ds: &ds, seed: 1234}
-	return gpk, nil
+	return m, nil
 }
-func (gpk *gdalDataSet) setOcctypeProvider(useFilepath bool, filepath string) {
+func (mds *MillimanDataSet) setOcctypeProvider(useFilepath bool, filepath string) {
 	if useFilepath {
 		otp := structures.JsonOccupancyTypeProvider{}
 		otp.InitLocalPath(filepath)
-		gpk.OccTypeProvider = otp
+		mds.OccTypeProvider = otp
 	} else {
 		otp := structures.JsonOccupancyTypeProvider{}
 		otp.InitDefault()
-		gpk.OccTypeProvider = otp
+		mds.OccTypeProvider = otp
 	}
 }
-func (gpk *gdalDataSet) SetDeterministic(useDeterministic bool) {
-	gpk.deterministic = useDeterministic
+func (mds *MillimanDataSet) SetDeterministic(useDeterministic bool) {
+	mds.deterministic = useDeterministic
 }
-func (gpk *gdalDataSet) SetSeed(seed int64) {
-	gpk.seed = seed
+func (mds *MillimanDataSet) SetSeed(seed int64) {
+	mds.seed = seed
 }
-func (gpk *gdalDataSet) SpatialReference() string {
-	l := gpk.ds.LayerByName(gpk.LayerName)
-	sr := l.SpatialReference()
+func (mds *MillimanDataSet) SpatialReference() string {
+	sr := gdal.CreateSpatialReference("")
+	sr.FromEPSG(4326)
 	wkt, err := sr.ToWKT()
 	if err != nil {
 		return ""
 	}
 	return wkt
 }
-func (gpk *gdalDataSet) UpdateSpatialReference(sr_wkt string) {
+func (mds *MillimanDataSet) UpdateSpatialReference(sr_wkt string) {
 	// unimplemented
 	fmt.Println("could not set spatial reference")
 }
 
 // StreamByFips a streaming service for structure stochastic based on a bounding box
-func (gpk gdalDataSet) ByFips(fipscode string, sp consequences.StreamProcessor) {
-	if gpk.deterministic {
-		gpk.processFipsStreamDeterministic(fipscode, sp)
+func (mds *MillimanDataSet) ByFips(fipscode string, sp consequences.StreamProcessor) {
+	if mds.deterministic {
+		mds.processFipsStreamDeterministic(fipscode, sp)
 	} else {
-		gpk.processFipsStream(fipscode, sp)
+		mds.processFipsStream(fipscode, sp)
 	}
 
 }
-func (gpk gdalDataSet) processFipsStream(fipscode string, sp consequences.StreamProcessor) {
-	m := gpk.OccTypeProvider.OccupancyTypeMap()
+func (mds *MillimanDataSet) processFipsStream(fipscode string, sp consequences.StreamProcessor) {
+	m := mds.OccTypeProvider.OccupancyTypeMap()
 	//define a default occtype in case of emergancy
-	defaultOcctype := m["RES1-1SNB"]
-	idx := 0
-	l := gpk.ds.LayerByName(gpk.LayerName)
-	fc, _ := l.FeatureCount(true)
-	r := rand.New(rand.NewSource(gpk.seed))
-	for idx < fc { // Iterate and fetch the records from result cursor
-		f := l.NextFeature()
-		idx++
-		if f != nil {
-			s, err := featuretoStructure(f, m, defaultOcctype, gpk.schemaIDX)
-			s.ApplyFoundationHeightUncertanty(gpk.FoundationUncertainty)
-			s.UseUncertainty = true
-			sd := s.SampleStructure(r.Int63())
-			if err == nil {
-				sp(sd)
-			}
-		}
+	r := rand.New(rand.NewSource(mds.seed))
+	//filter mds by fips (no fips available so process the whole inventory)
+	for _, a := range mds.assets {
+		s := a.toStructureStochastic(m)
+		s.ApplyFoundationHeightUncertanty(mds.FoundationUncertainty)
+		s.UseUncertainty = true
+		sd := s.SampleStructure(r.Int63())
+		sp(sd)
 	}
 }
-func (gpk gdalDataSet) processFipsStreamDeterministic(fipscode string, sp consequences.StreamProcessor) {
-	m := gpk.OccTypeProvider.OccupancyTypeMap()
+func (mds *MillimanDataSet) processFipsStreamDeterministic(fipscode string, sp consequences.StreamProcessor) {
+	m := mds.OccTypeProvider.OccupancyTypeMap()
 	m2 := swapOcctypeMap(m)
-	//define a default occtype in case of emergancy
-	defaultOcctype := m2["RES1-1SNB"]
-	idx := 0
-	l := gpk.ds.LayerByName(gpk.LayerName)
-	fc, _ := l.FeatureCount(true)
-	for idx < fc { // Iterate and fetch the records from result cursor
-		f := l.NextFeature()
-		idx++
-		if f != nil {
-			s, err := featuretoDeterministicStructure(f, m2, defaultOcctype, gpk.schemaIDX)
-			if err == nil {
-				sp(s)
-			}
-		}
+	//filter by fips (no fips available so doing the whole inventory.)
+	for _, a := range mds.assets {
+		s := a.toStructureDeterministic(m2)
+		sp(s)
+
 	}
 }
-func (gpk gdalDataSet) ByBbox(bbox geography.BBox, sp consequences.StreamProcessor) {
-	if gpk.deterministic {
-		gpk.processBboxStreamDeterministic(bbox, sp)
+func (mds *MillimanDataSet) ByBbox(bbox geography.BBox, sp consequences.StreamProcessor) {
+	if mds.deterministic {
+		mds.processBboxStreamDeterministic(bbox, sp)
 	} else {
-		gpk.processBboxStream(bbox, sp)
+		mds.processBboxStream(bbox, sp)
 	}
 
 }
-func (gpk gdalDataSet) processBboxStream(bbox geography.BBox, sp consequences.StreamProcessor) {
-	m := gpk.OccTypeProvider.OccupancyTypeMap()
-	//define a default occtype in case of emergancy
-	defaultOcctype := m["RES1-1SNB"]
-	idx := 0
-	l := gpk.ds.LayerByName(gpk.LayerName)
-	l.SetSpatialFilterRect(bbox.Bbox[0], bbox.Bbox[3], bbox.Bbox[2], bbox.Bbox[1])
-	fc, _ := l.FeatureCount(true)
-	r := rand.New(rand.NewSource(gpk.seed))
-	for idx < fc { // Iterate and fetch the records from result cursor
-		f := l.NextFeature()
-		idx++
-		if f != nil {
-			s, err := featuretoStructure(f, m, defaultOcctype, gpk.schemaIDX)
-			s.ApplyFoundationHeightUncertanty(gpk.FoundationUncertainty)
-			s.UseUncertainty = true
-			sd := s.SampleStructure(r.Int63())
-			if err == nil {
-				sp(sd)
-			}
-		}
+func (mds *MillimanDataSet) processBboxStream(bbox geography.BBox, sp consequences.StreamProcessor) {
+	m := mds.OccTypeProvider.OccupancyTypeMap()
+	r := rand.New(rand.NewSource(mds.seed))
+	ds := mds.filter(bbox)
+	for _, a := range ds.assets {
+		s := a.toStructureStochastic(m)
+		s.ApplyFoundationHeightUncertanty(mds.FoundationUncertainty)
+		s.UseUncertainty = true
+		sd := s.SampleStructure(r.Int63())
+		sp(sd)
 	}
 }
 
-func (gpk gdalDataSet) processBboxStreamDeterministic(bbox geography.BBox, sp consequences.StreamProcessor) {
-	m := gpk.OccTypeProvider.OccupancyTypeMap()
+func (mds *MillimanDataSet) processBboxStreamDeterministic(bbox geography.BBox, sp consequences.StreamProcessor) {
+	m := mds.OccTypeProvider.OccupancyTypeMap()
 	m2 := swapOcctypeMap(m)
-	//define a default occtype in case of emergancy
-	defaultOcctype := m2["RES1-1SNB"]
-	idx := 0
-	l := gpk.ds.LayerByName(gpk.LayerName)
-	l.SetSpatialFilterRect(bbox.Bbox[0], bbox.Bbox[3], bbox.Bbox[2], bbox.Bbox[1])
-	fc, _ := l.FeatureCount(true)
-	for idx < fc { // Iterate and fetch the records from result cursor
-		f := l.NextFeature()
-		idx++
-		if f != nil {
-			s, err := featuretoDeterministicStructure(f, m2, defaultOcctype, gpk.schemaIDX)
-			if err == nil {
-				sp(s)
-			}
-		}
-	}
-}
+	ds := mds.filter(bbox)
+	for _, a := range ds.assets {
+		s := a.toStructureDeterministic(m2)
+		sp(s)
 
-func featuretoStructure(
-	f *gdal.Feature,
-	m map[string]structures.OccupancyTypeStochastic,
-	defaultOcctype structures.OccupancyTypeStochastic,
-	idxs []int,
-) (structures.StructureStochastic, error) {
-	defer f.Destroy()
-	s := structures.StructureStochastic{}
-	s.Name = fmt.Sprintf("%v", f.FieldAsInteger(idxs[0]))
-	basementstring := "N"
-	if f.FieldAsInteger(idxs[9]) == 2 {
-		basementstring = "W"
 	}
-	OccTypeName := fmt.Sprintf("RES1-%dS%vB", f.FieldAsInteger(idxs[6]), basementstring) //f.FieldAsString(idxs[5])
-	var occtype = defaultOcctype
-	//dont have access to foundation type in the structure schema yet.
-	if idxs[9] > 0 {
-		if otf, okf := m[OccTypeName+"-"+f.FieldAsString(idxs[9])]; okf {
-			occtype = otf
-		} else {
-			if ot, ok := m[OccTypeName]; ok {
-				occtype = ot
-			} else {
-				occtype = defaultOcctype
-				msg := "Using default " + OccTypeName + " not found"
-				fmt.Println(msg)
-				//return s, errors.New(msg)
-			}
-		}
-	} else {
-		if ot, ok := m[OccTypeName]; ok {
-			occtype = ot
-		} else {
-			occtype = defaultOcctype
-			msg := "Using default " + OccTypeName + " not found"
-			fmt.Println(msg)
-			//return s, errors.New(msg)
-		}
-	}
-
-	s.OccType = occtype
-	g := f.Geometry()
-	if g.IsNull() || g.IsEmpty() {
-		s.X = f.FieldAsFloat64(idxs[1])
-		s.Y = f.FieldAsFloat64(idxs[2])
-	} else {
-		s.X = f.Geometry().X(0)
-		s.Y = f.Geometry().Y(0)
-	}
-	s.DamCat = "RES"
-	s.FoundType = f.FieldAsString(idxs[5])
-	grndElev := f.FieldAsFloat64(idxs[7])
-	ffe := f.FieldAsFloat64(idxs[9])
-	s.StructVal = consequences.ParameterValue{Value: f.FieldAsFloat64(idxs[3])}
-	s.ContVal = consequences.ParameterValue{Value: f.FieldAsFloat64(idxs[4])}
-	s.FoundHt = consequences.ParameterValue{Value: ffe - grndElev}
-	s.NumStories = int32(f.FieldAsInteger(idxs[6]))
-	s.GroundElevation = grndElev
-	s.ConstructionType = f.FieldAsString(idxs[8])
-
-	return s, nil
 }
 
 func swapOcctypeMap(
@@ -293,62 +334,4 @@ func swapOcctypeMap(
 		m2[name] = ot.CentralTendency()
 	}
 	return m2
-}
-
-func featuretoDeterministicStructure(
-	f *gdal.Feature,
-	m map[string]structures.OccupancyTypeDeterministic,
-	defaultOcctype structures.OccupancyTypeDeterministic,
-	idxs []int,
-) (structures.StructureDeterministic, error) {
-	defer f.Destroy()
-	s := structures.StructureDeterministic{}
-	s.Name = fmt.Sprintf("%v", f.FieldAsInteger(idxs[0]))
-	OccTypeName := f.FieldAsString(idxs[5])
-	var occtype = defaultOcctype
-	//dont have access to foundation type in the structure schema yet.
-	if idxs[9] > 0 {
-		if otf, okf := m[OccTypeName+"-"+f.FieldAsString(idxs[9])]; okf {
-			occtype = otf
-		} else {
-			if ot, ok := m[OccTypeName]; ok {
-				occtype = ot
-			} else {
-				occtype = defaultOcctype
-				msg := "Using default " + OccTypeName + " not found"
-				fmt.Println(msg)
-				//return s, errors.New(msg)
-			}
-		}
-	} else {
-		if ot, ok := m[OccTypeName]; ok {
-			occtype = ot
-		} else {
-			occtype = defaultOcctype
-			msg := "Using default " + OccTypeName + " not found"
-			fmt.Println(msg)
-			//return s, errors.New(msg)
-		}
-	}
-
-	s.OccType = occtype
-	g := f.Geometry()
-	if g.IsNull() || g.IsEmpty() {
-		s.X = f.FieldAsFloat64(idxs[1])
-		s.Y = f.FieldAsFloat64(idxs[2])
-	} else {
-		s.X = f.Geometry().X(0)
-		s.Y = f.Geometry().Y(0)
-	}
-	s.DamCat = "RES"
-	s.FoundType = f.FieldAsString(idxs[5])
-	grndElev := f.FieldAsFloat64(idxs[7])
-	ffe := f.FieldAsFloat64(idxs[9])
-	s.StructVal = f.FieldAsFloat64(idxs[3])
-	s.ContVal = f.FieldAsFloat64(idxs[4])
-	s.FoundHt = ffe - grndElev
-	s.NumStories = int32(f.FieldAsInteger(idxs[6]))
-	s.GroundElevation = grndElev
-	s.ConstructionType = f.FieldAsString(idxs[8])
-	return s, nil
 }

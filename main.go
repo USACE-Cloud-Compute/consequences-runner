@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/usace-cloud-compute/cc-go-sdk"
+	_ "github.com/usace-cloud-compute/consequences-runner/actions"
 )
 
 const (

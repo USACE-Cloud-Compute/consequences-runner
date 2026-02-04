@@ -1,8 +1,6 @@
 package actions
 
 import (
-	"fmt"
-
 	"github.com/usace-cloud-compute/cc-go-sdk"
 )
 
@@ -27,7 +25,7 @@ func (ca *CopyAction) Run() error {
 			input := cc.CopyToLocalInput{
 				DsName:    i.Name,
 				PathKey:   pk,
-				LocalPath: fmt.Sprintf("%v/%v", localData, i.Name),
+				LocalPath: localData, //fmt.Sprintf("%v/%v", localData, i.Name),
 			}
 			err := pm.CopyFileToLocal(input) //should be pv.filename or somesuch
 			if err != nil {

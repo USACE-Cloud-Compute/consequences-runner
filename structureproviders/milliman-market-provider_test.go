@@ -4,28 +4,21 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/USACE/go-consequences/consequences"
-	"github.com/USACE/go-consequences/geography"
-	"github.com/USACE/go-consequences/hazards"
-	"github.com/USACE/go-consequences/structures"
+	"github.com/USACE/go-consequences/compute"
+	"github.com/USACE/go-consequences/hazardproviders"
+	"github.com/USACE/go-consequences/resultswriters"
 )
 
 func Test_Load(t *testing.T) {
-	sp, err := InitStructureProvider("/workspaces/consequences-runner/data/DC_ucmb.csv")
+	sp, err := InitMillimanStructureProvider("/workspaces/consequences-runner/data/TX_ucmb.csv")
 	if err != nil {
 		fmt.Println(err)
 		t.Fail()
 	}
-	counter := 0
-	sp.processBboxStreamDeterministic(geography.BBox{[]float64{0, 0, 0, 0.0}}, func(s consequences.Receptor) {
-		counter++
-		st, ok := s.(structures.StructureStochastic)
-		if ok {
-			fmt.Println(st.OccType.ComponentDamageFunctions["structure"].DamageFunctions[hazards.Depth].Source)
-		}
+	hp, err := hazardproviders.Init("/workspaces/consequences-runner/data/aep_depth_100yr_realz_1_projected.tif")
 
-	})
-	if counter != 101 {
-		t.Errorf("yeilded %d structures; expected 101", counter)
-	}
+	rw, err := resultswriters.InitSpatialResultsWriter("/workspaces/consequences-runner/data/TX_ucmb_results.gpkg", "results", "GPKG")
+	defer rw.Close()
+	compute.StreamAbstract(hp, sp, rw)
+
 }

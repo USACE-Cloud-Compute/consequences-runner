@@ -105,14 +105,12 @@ github.com/spf13/cast v1.10.0/go.mod h1:jNfB8QC9IA6ZuY2ZjDp0KtFO2LZZlg4S/7bzP6qq
 github.com/stretchr/testify v1.2.2/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXfy6kDkUVs=
 github.com/stretchr/testify v1.8.4 h1:CcVxjf3Q8PM0mHUKJCdn+eZZtm5yQwehR5yeSVQQcUk=
 github.com/stretchr/testify v1.8.4/go.mod h1:sz/lmYIOXD/1dqDmKjjqLyZ2RngseejIcXlSw2iwfAo=
-github.com/usace-cloud-compute/cc-go-sdk v0.0.0-20251110180756-cac3686e146b h1:OuTZCioljCEQ9e2tBKaXi1VQ/6CQs4NFQi+Ft6+EgvU=
-github.com/usace-cloud-compute/cc-go-sdk v0.0.0-20251110180756-cac3686e146b/go.mod h1:HZsGTrNUUdjfqqJJaLpSBEKoIDmu/vnye2KK/AwchDo=
 github.com/usace-cloud-compute/cc-go-sdk v0.0.0-20251118163833-620acc79f197 h1:oM3e8JDPNyYjK3/aZHQkNDeWiE0D2/SPtFAr6haz3Hc=
 github.com/usace-cloud-compute/cc-go-sdk v0.0.0-20251118163833-620acc79f197/go.mod h1:HZsGTrNUUdjfqqJJaLpSBEKoIDmu/vnye2KK/AwchDo=
+github.com/usace-cloud-compute/cc-go-sdk v0.0.0-20251124210849-b455e063a7ea h1:tlM91GCRJ1gqc4dcFvfI6h8MI2l5FNR3Ehn+Rh4oDJw=
+github.com/usace-cloud-compute/cc-go-sdk v0.0.0-20251124210849-b455e063a7ea/go.mod h1:HZsGTrNUUdjfqqJJaLpSBEKoIDmu/vnye2KK/AwchDo=
 github.com/usace-cloud-compute/filesapi v0.0.0-20251107191432-8084e0da4b5c h1:1Srw2WpT9tcEIUY853oeojXJjPH8iTYFGLXPaIrUe+I=
 github.com/usace-cloud-compute/filesapi v0.0.0-20251107191432-8084e0da4b5c/go.mod h1:6iMo7JYrqbf0dfSVGqrAJfoVhi2hKJysD5o8mXi0XhI=
-github.com/usace/consequences-runner v0.0.0-20251117170320-692bc2d5b58d h1:fEbx8kT4tihpQbzLxa68n6LW+ws/JpkqYBzjEbHE8Ic=
-github.com/usace/consequences-runner v0.0.0-20251117170320-692bc2d5b58d/go.mod h1:cbvSDCGfyKPUZxLrn4w2WeRGtWyKMBxdUoJl5sM+zVA=
 github.com/wk8/go-ordered-map/v2 v2.1.8 h1:5h/BUHu93oj4gIdvHHHGsScSTMijfx5PeYkE/fJgbpc=
 github.com/wk8/go-ordered-map/v2 v2.1.8/go.mod h1:5nJHM5DyteebpVlHnWMV0rPz6Zp7+xBAnxjb1X5vnTw=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=

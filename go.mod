@@ -2,13 +2,12 @@ module github.com/usace-cloud-compute/consequences-runner
 
 go 1.24
 
-
 require (
 	github.com/HydrologicEngineeringCenter/go-statistics v0.0.0-20240126145250-a17483ae0981
 	github.com/USACE/go-consequences v0.0.0-20250731200338-7eee6afc377f
 	github.com/dewberry/gdal v0.3.4
 	github.com/google/uuid v1.6.0 // indirect
-	github.com/usace-cloud-compute/cc-go-sdk v0.0.0-20251118163833-620acc79f197
+	github.com/usace-cloud-compute/cc-go-sdk v0.0.0-20251124210849-b455e063a7ea
 )
 
 require (

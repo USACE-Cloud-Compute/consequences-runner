@@ -27,7 +27,7 @@ COPY . /src
 WORKDIR /src
 
 #RUN go build
-RUN make build
+RUN go build
 
 #-------------
 

@@ -1,4 +1,4 @@
-package resultswriters
+package crresultswriters
 
 import (
 	"errors"
