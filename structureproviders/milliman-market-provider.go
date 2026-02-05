@@ -34,20 +34,81 @@ type MillimanAsset struct {
 	lat                  float64
 	bldg_val             float64
 	cnt_val              float64
-	const_code           int
+	const_code           Construction_Type //1 frame 2 masonary
 	num_stories          int
 	yr_built             int
-	foundation_type      int
-	basement             bool
-	first_floor_elev     int     //seemingly this is foundation height not ffe.
-	base_flood_elevation float64 //unknown or int in the files i see... must convert unknown to -901 or something.
+	foundation_type      Foundation_Type //2=basement, 4 crawlspace, 6 pier, 7 fill or wall, 8 slab, 9 pile
+	basement             Basement_Type   //0 no basement, 1 unfinished basement, 2 finished basement.
+	first_floor_elev     int             //seemingly this is foundation height not ffe.
+	base_flood_elevation float64         //unknown or int in the files i see... must convert unknown to -901 or something.
 	elev_ft              float64
 }
+type Basement_Type int
+
+const (
+	NONE       Basement_Type = 0
+	FINISHED   Basement_Type = 2
+	UNFINISHED Basement_Type = 1
+)
+
+type Construction_Type int
+
+func (c Construction_Type) toString() string {
+	switch c {
+	case FRAME:
+		return "Frame"
+	case MASONARY:
+		return "Masonary"
+	default:
+		return "Frame"
+	}
+}
+
+const (
+	FRAME    Construction_Type = 1
+	MASONARY Construction_Type = 2
+)
+
+type Foundation_Type int
+
+func (f Foundation_Type) toString() string {
+	switch f {
+	case BASEMEMENT:
+		return "Basement"
+	case CRAWLSPACE:
+		return "Crawl"
+	case PIER:
+		return "Pier"
+	case WALL_OR_FILL:
+		return "WALL_OR_FILL"
+	case SLAB:
+		return "Slab"
+	case PILE:
+		return "Pile"
+	default:
+		return "slab"
+	}
+}
+
+const (
+	BASEMEMENT   Foundation_Type = 2
+	CRAWLSPACE   Foundation_Type = 4
+	PIER         Foundation_Type = 6
+	WALL_OR_FILL Foundation_Type = 7
+	SLAB         Foundation_Type = 8
+	PILE         Foundation_Type = 9
+)
 
 func (a MillimanAsset) toStructureDeterministic(m map[string]structures.OccupancyTypeDeterministic) structures.StructureDeterministic {
 	basementType := "NB"
-	if a.basement {
-		basementType = "WB"
+	if a.basement != NONE {
+		basementType = "WB" //currenly not supporting finished vs not finished.
+	}
+	if a.foundation_type == CRAWLSPACE {
+		basementType += "-C"
+	}
+	if a.foundation_type == PIER {
+		basementType += "-P"
 	}
 	occtype := fmt.Sprintf("RES1-%vS%v", a.num_stories, basementType)
 	//add construction type
@@ -64,9 +125,9 @@ func (a MillimanAsset) toStructureDeterministic(m map[string]structures.Occupanc
 			Y:               a.lat,
 			GroundElevation: a.elev_ft,
 		},
-		FoundType:        strconv.Itoa(a.foundation_type),
+		FoundType:        a.foundation_type.toString(),
 		FirmZone:         "unknown",
-		ConstructionType: strconv.Itoa(a.const_code),
+		ConstructionType: a.const_code.toString(),
 		StructVal:        a.bldg_val,
 		ContVal:          a.cnt_val,
 		FoundHt:          float64(a.first_floor_elev),
@@ -77,8 +138,14 @@ func (a MillimanAsset) toStructureDeterministic(m map[string]structures.Occupanc
 }
 func (a MillimanAsset) toStructureStochastic(m map[string]structures.OccupancyTypeStochastic) structures.StructureStochastic {
 	basementType := "NB"
-	if a.basement {
+	if a.basement != NONE {
 		basementType = "WB"
+	}
+	if a.foundation_type == CRAWLSPACE {
+		basementType += "-C"
+	}
+	if a.foundation_type == PIER {
+		basementType += "-P"
 	}
 	occtype := fmt.Sprintf("RES1-%vS%v", a.num_stories, basementType)
 	//add construction type
@@ -95,9 +162,9 @@ func (a MillimanAsset) toStructureStochastic(m map[string]structures.OccupancyTy
 			Y:               a.lat,
 			GroundElevation: a.elev_ft,
 		},
-		FoundType:        strconv.Itoa(a.foundation_type),
+		FoundType:        a.foundation_type.toString(),
 		FirmZone:         "unknown",
-		ConstructionType: strconv.Itoa(a.const_code),
+		ConstructionType: a.const_code.toString(),
 		StructVal:        consequences.ParameterValue{Value: a.bldg_val},
 		ContVal:          consequences.ParameterValue{Value: a.cnt_val},
 		FoundHt:          consequences.ParameterValue{Value: float64(a.first_floor_elev)},
@@ -173,9 +240,45 @@ func tobfe(s string) float64 {
 	}
 	return f
 }
-func tobool(s string) bool {
-	return s == "1"
-
+func toConstruction(s string) Construction_Type {
+	switch s {
+	case "1":
+		return FRAME
+	case "2":
+		return MASONARY
+	default:
+		return FRAME
+	}
+}
+func tofoundationtype(s string) Foundation_Type {
+	switch s {
+	case "2":
+		return BASEMEMENT
+	case "4":
+		return CRAWLSPACE
+	case "6":
+		return PIER
+	case "7":
+		return WALL_OR_FILL
+	case "8":
+		return SLAB
+	case "9":
+		return PILE
+	default:
+		return SLAB
+	}
+}
+func tobasement(s string) Basement_Type {
+	switch s {
+	case "0":
+		return NONE
+	case "1":
+		return UNFINISHED
+	case "2":
+		return FINISHED
+	default:
+		return NONE
+	}
 }
 func initalizestructureprovider(filepath string) (MillimanDataSet, error) {
 	data, err := os.ReadFile(filepath)
@@ -201,11 +304,11 @@ func initalizestructureprovider(filepath string) (MillimanDataSet, error) {
 					lat:                  tofloat(vals[10]),
 					bldg_val:             tofloat(vals[11]),
 					cnt_val:              tofloat(vals[12]),
-					const_code:           toint(vals[13]),
+					const_code:           toConstruction(vals[13]),
 					num_stories:          toint(vals[14]),
 					yr_built:             toint(vals[15]),
-					foundation_type:      toint(vals[16]),
-					basement:             tobool(vals[17]),
+					foundation_type:      tofoundationtype(vals[16]),
+					basement:             tobasement(vals[17]),
 					first_floor_elev:     toint(vals[18]),
 					base_flood_elevation: tobfe(vals[19]),
 					elev_ft:              tofloat(vals[20]),
