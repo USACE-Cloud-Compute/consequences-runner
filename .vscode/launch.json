@@ -40,7 +40,18 @@
             "program": "${workspaceFolder}",
             "args": [
                 "-test.run",
-                "Test_Main"
+                "Test_Compute"
+            ],
+            "envFile": "/workspaces/.env-milliman"
+        },{
+            "name": "Download",
+            "type": "go",
+            "request": "launch",
+            "mode": "test",
+            "program": "${workspaceFolder}",
+            "args": [
+                "-test.run",
+                "Test_Download"
             ],
             "envFile": "/workspaces/.env"
         },{

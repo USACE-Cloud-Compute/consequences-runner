@@ -1,11 +1,11 @@
 package main
 
-/*
 import (
 	"fmt"
 	"io"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/USACE/go-consequences/consequences"
@@ -13,72 +13,79 @@ import (
 	"github.com/USACE/go-consequences/resultswriters"
 	"github.com/USACE/go-consequences/structureprovider"
 	"github.com/USACE/go-consequences/structures"
-	"github.com/usace/cc-go-sdk"
-	filestore "github.com/usace/filestore2"
+	"github.com/usace-cloud-compute/cc-go-sdk"
+	filestore "github.com/usace-cloud-compute/filesapi"
 )
 
+func Download(keys []string, dests []string) {
+	profile := "FFRD"
 
-	func Download(keys []string, dests []string) {
-		//create a filestore connection to the runs directory
-		config := filestore.S3FSConfig{
-			S3Id:     os.Getenv(cc.AwsAccessKeyId),
-			S3Key:    os.Getenv(cc.AwsSecretAccessKey),
-			S3Region: os.Getenv(cc.AwsDefaultRegion),
-			S3Bucket: os.Getenv(cc.AwsS3Bucket),
+	config := filestore.S3FSConfig{
+		Credentials: filestore.S3FS_Static{
+			S3Id:  os.Getenv(fmt.Sprintf("%s_%s", profile, cc.AwsAccessKeyId)),
+			S3Key: os.Getenv(fmt.Sprintf("%s_%s", profile, cc.AwsSecretAccessKey)),
+		},
+		S3Region: os.Getenv(fmt.Sprintf("%s_%s", profile, cc.AwsDefaultRegion)),
+		S3Bucket: os.Getenv(fmt.Sprintf("%s_%s", profile, cc.AwsS3Bucket)),
+	}
+	fs, err := filestore.NewFileStore(config)
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+	for i, f := range keys {
+		pc := filestore.PathConfig{
+			Path: f,
+			//Paths: []string{f},
 		}
-		fs, err := filestore.NewFileStore(config)
+		ro := filestore.GetObjectInput{
+			Path: pc,
+		}
+		reader, err := fs.GetObject(ro)
 		if err != nil {
-			log.Fatal(err.Error())
-		}
-		for i, f := range keys {
-			ro := filestore.PathConfig{
-				Path: f,
-				//Paths: []string{f},
-			}
+			fmt.Println(err)
+			fmt.Println(f)
+			//return
+		} else {
+			defer reader.Close()
+			dir := filepath.Dir(dests[i])
+			if _, err := os.Stat(dir); os.IsNotExist(err) {
+				// Create the directory with permissions 0755 (rwxr-xr-x)
 
-			reader, err := fs.GetObject(ro)
+				err := os.MkdirAll(dir, 0755)
+				if err != nil {
+					panic(err) // Handle the error appropriately
+				}
+				println("Directory created successfully!")
+			} else {
+				println("Directory already exists!")
+			}
+			resultwriter, err := os.Create(dests[i])
 			if err != nil {
 				fmt.Println(err)
-				fmt.Println(f)
-				//return
-			} else {
-				defer reader.Close()
-				dir := filepath.Dir(dests[i])
-				if _, err := os.Stat(dir); os.IsNotExist(err) {
-					// Create the directory with permissions 0755 (rwxr-xr-x)
-
-					err := os.MkdirAll(dir, 0755)
-					if err != nil {
-						panic(err) // Handle the error appropriately
-					}
-					println("Directory created successfully!")
-				} else {
-					println("Directory already exists!")
-				}
-				resultwriter, err := os.Create(dests[i])
-				if err != nil {
-					fmt.Println(err)
-					return
-				}
-				filebytes, err := io.ReadAll(reader)
-				if err != nil {
-					fmt.Println(err)
-					return
-				}
-
-				resultwriter.Write(filebytes)
+				return
+			}
+			filebytes, err := io.ReadAll(reader)
+			if err != nil {
+				fmt.Println(err)
+				return
 			}
 
+			resultwriter.Write(filebytes)
 		}
+
+	}
 
 }
 
 func ConvertGpkgToParquet(geopackageName string) {
 	//create a filestore connection to the runs directory
 	profile := "FFRD"
+
 	config := filestore.S3FSConfig{
-		S3Id:     os.Getenv(fmt.Sprintf("%s_%s", profile, cc.AwsAccessKeyId)),
-		S3Key:    os.Getenv(fmt.Sprintf("%s_%s", profile, cc.AwsSecretAccessKey)),
+		Credentials: filestore.S3FS_Static{
+			S3Id:  os.Getenv(fmt.Sprintf("%s_%s", profile, cc.AwsAccessKeyId)),
+			S3Key: os.Getenv(fmt.Sprintf("%s_%s", profile, cc.AwsSecretAccessKey)),
+		},
 		S3Region: os.Getenv(fmt.Sprintf("%s_%s", profile, cc.AwsDefaultRegion)),
 		S3Bucket: os.Getenv(fmt.Sprintf("%s_%s", profile, cc.AwsS3Bucket)),
 	}
@@ -92,7 +99,10 @@ func ConvertGpkgToParquet(geopackageName string) {
 	pathconfig := filestore.PathConfig{
 		Path: path,
 	}
-	reader, err := fs.GetObject(pathconfig)
+	ob := filestore.GetObjectInput{
+		Path: pathconfig,
+	}
+	reader, err := fs.GetObject(ob)
 	if err != nil {
 		log.Fatal(err.Error())
 	}
@@ -186,6 +196,9 @@ func ConvertGpkgToParquet(geopackageName string) {
 	parquetpathconfig := filestore.PathConfig{
 		Path: remoteparquetpath,
 	}
-	fs.PutObject(parquetpathconfig, parquetbytes)
+	po := filestore.PutObjectInput{
+		Source: filestore.ObjectSource{Data: parquetbytes},
+		Dest:   parquetpathconfig,
+	}
+	fs.PutObject(po)
 }
-*/
