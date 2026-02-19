@@ -125,3 +125,15 @@ func Test_Compute(t *testing.T) {
 	}
 
 }
+func Test_Format(t *testing.T) {
+	//
+
+	freqs := []float64{0.1, 0.05, 0.02, 0.01, 0.002, 0.005, 0.001, 0.0005}
+
+	for _, f := range freqs {
+		val := 1 / f
+		fmt.Println(fmt.Sprintf("%1.0fYr_MS", val))
+		fmt.Println(fmt.Sprintf("%1.6fMS", f))
+	}
+
+}

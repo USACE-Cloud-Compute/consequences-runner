@@ -169,12 +169,13 @@ func ComputeMultiFrequencyMeanStdev(hps []lhp.Mean_and_stdev_HazardProvider, fre
 	header := []string{"ORIG_ID", "REPVAL", "STORY", "FOUND_T", "FOUND_H", "x", "y", "OccType", "DamCat", "BASEFIN", "FFH", "DEMFT", "BAAL", "CAAL", "TAAL", "PROB"}
 
 	for _, f := range freqs {
-		header = append(header, fmt.Sprintf("%1.6fMS", f))
-		header = append(header, fmt.Sprintf("%1.6fSS", f))
-		header = append(header, fmt.Sprintf("%1.6fMC", f))
-		header = append(header, fmt.Sprintf("%1.6fSC", f))
-		header = append(header, fmt.Sprintf("%1.6fMH", f))
-		header = append(header, fmt.Sprintf("%1.6fSH", f))
+		val := 1 / f
+		header = append(header, fmt.Sprintf("%1.0fYr_MS", val))
+		header = append(header, fmt.Sprintf("%1.0fYr_SS", val))
+		header = append(header, fmt.Sprintf("%1.0fYr_MC", val))
+		header = append(header, fmt.Sprintf("%1.0fYr_SC", val))
+		header = append(header, fmt.Sprintf("%1.0fYr_MH", val))
+		header = append(header, fmt.Sprintf("%1.0fYr_SH", val))
 	}
 
 	sp.ByBbox(bbox, func(f consequences.Receptor) {
@@ -426,12 +427,13 @@ func ComputeMultiFrequencyMeanStdev_SingleParameter(hps []lhp.SingleParameter_Me
 	header := []string{"ORIG_ID", "REPVAL", "STORY", "FOUND_T", "FOUND_H", "x", "y", "OccType", "DamCat", "BASEFIN", "FFH", "DEMFT", "BAAL", "CAAL", "TAAL", "PROB"}
 
 	for _, f := range freqs {
-		header = append(header, fmt.Sprintf("%1.6fMS", f))
-		header = append(header, fmt.Sprintf("%1.6fSS", f))
-		header = append(header, fmt.Sprintf("%1.6fMC", f))
-		header = append(header, fmt.Sprintf("%1.6fSC", f))
-		header = append(header, fmt.Sprintf("%1.6fMH", f))
-		header = append(header, fmt.Sprintf("%1.6fSH", f))
+		val := 1 / f
+		header = append(header, fmt.Sprintf("%1.0fYr_MS", val))
+		header = append(header, fmt.Sprintf("%1.0fYr_SS", val))
+		header = append(header, fmt.Sprintf("%1.0fYr_MC", val))
+		header = append(header, fmt.Sprintf("%1.0fYr_SC", val))
+		header = append(header, fmt.Sprintf("%1.0fYr_MH", val))
+		header = append(header, fmt.Sprintf("%1.0fYr_SH", val))
 	}
 
 	sp.ByBbox(bbox, func(f consequences.Receptor) {
