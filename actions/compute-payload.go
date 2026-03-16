@@ -54,12 +54,14 @@ const (
 	computeEventActionName        string = "compute-event"
 	computeFrequencyActionName    string = "compute-frequency"
 	computeCoastalEventActionName string = "compute-coastal-event"
+	computeCoastalLifecycleActionName string = "compute-coastal-lifecycle"
 )
 
 func init() {
 	cc.ActionRegistry.RegisterAction(computeEventActionName, &ComputeEventAction{})
 	cc.ActionRegistry.RegisterAction(computeFrequencyActionName, &ComputeFrequencyAction{})
 	cc.ActionRegistry.RegisterAction(computeCoastalEventActionName, &ComputeCoastalEventAction{})
+	cc.ActionRegistry.RegisterAction(computeCoastalLifecycleActionName, &ComputeCoastalLifecycleAction{})
 }
 
 type ComputeEventAction struct {
@@ -69,6 +71,9 @@ type ComputeFrequencyAction struct {
 	cc.ActionRunnerBase
 }
 type ComputeCoastalEventAction struct {
+	cc.ActionRunnerBase
+}
+type ComputeCoastalLifecycleAction struct {
 	cc.ActionRunnerBase
 }
 
@@ -504,4 +509,10 @@ func ComputeEAD(damages []float64, freq []float64) float64 {
 		eadT += xdelta * y1 //no extrapolation, just continue damages out as if it were truth for all remaining probability.
 	}
 	return eadT
+}
+
+
+func (ar *ComputeCoastalLifecycle) Run() error {
+
+	
 }
