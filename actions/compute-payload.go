@@ -19,6 +19,8 @@ import (
 	"github.com/usace-cloud-compute/cc-go-sdk"
 	lrw "github.com/usace-cloud-compute/consequences-runner/crresultswriters"
 	"github.com/usace-cloud-compute/consequences-runner/structureproviders"
+
+	"github.com/corpsmap/gdal"
 )
 
 const (
@@ -133,7 +135,7 @@ func (ar *ComputeEventAction) Run() error {
 		if err != nil {
 			return err
 		}
-		fmt.Sprintln(sp.FilePath)
+		fmt.Println(sp.FilePath)
 		sr = sp.SpatialReference()
 		abstractSP = sp
 	} else {
@@ -142,7 +144,7 @@ func (ar *ComputeEventAction) Run() error {
 		if err != nil {
 			return err
 		}
-		fmt.Sprintln(sp.FilePath)
+		fmt.Println(sp.FilePath)
 		sr = sp.SpatialReference()
 		abstractSP = sp
 	}
@@ -238,24 +240,58 @@ func (ar *ComputeCoastalEventAction) Run() error {
 	}
 	fmt.Sprintln(sp.FilePath)
 
-	//initalize a psql results writer
 	var rw consequences.ResultsWriter
-	pgUser := os.Getenv(pgUserKey)
-	pgPass := os.Getenv(pgPasswordKey)
-	pgDB := os.Getenv(pgDbnameKey)
-	pgHost := os.Getenv(pgHostKey)
-	pgPort := os.Getenv(pgPortKey)
-	pgSchema := os.Getenv(pgSchemaKey)
+	if outputDriver == "PostgreSQL" {
+		pgUser := os.Getenv(pgUserKey)
+		pgPass := os.Getenv(pgPasswordKey)
+		pgDB := os.Getenv(pgDbnameKey)
+		pgHost := os.Getenv(pgHostKey)
+		pgPort := os.Getenv(pgPortKey)
+		pgSchema := os.Getenv(pgSchemaKey)
 
-	outConnStr := fmt.Sprintf(
-		"PG:dbname=%s user=%s password=%s host=%s port=%s schemas=%s",
-		pgDB, pgUser, pgPass, pgHost, pgPort, pgSchema,
-	)
+		outConnStr := fmt.Sprintf(
+			"PG:dbname=%s user=%s password=%s host=%s port=%s schemas=%s",
+			pgDB, pgUser, pgPass, pgHost, pgPort, pgSchema,
+		)
 
-	rw, err = lrw.InitSpatialResultsWriter_PSQL(outConnStr, outputLayerName, outputDriver, pgDB)
-	if err != nil {
-		log.Fatalf("Failed to initialize spatial psql result writer: %s\n", err)
+		rw, err = lrw.InitSpatialResultsWriter_PSQL(outConnStr, outputLayerName, outputDriver, pgDB)
+		if err != nil {
+			log.Fatalf("Failed to initialize spatial psql result writer: %s\n", err)
+		}
+	} else {
+		outputFileName := a.Attributes.GetStringOrFail(outputFileNameKey)
+		outfp := fmt.Sprintf("%s/%s", localData, outputFileName)
+		sr := gdal.CreateSpatialReference("")
+		sr.FromEPSG(4326)
+		wkt, err := sr.ToWKT()
+		if err != nil {
+			log.Fatalf("failed to convert srs to wkt: %s", err)
+		}
+
+		rw, err = resultswriters.InitSpatialResultsWriter_WKT_Projected(outfp, outputLayerName, outputDriver, wkt)
+		if err != nil {
+			log.Fatalf("Failed to initialize spatial result writer: %s\n", err)
+		}
 	}
+
+	//initalize a psql results writer
+	// var rw consequences.ResultsWriter
+	// pgUser := os.Getenv(pgUserKey)
+	// pgPass := os.Getenv(pgPasswordKey)
+	// pgDB := os.Getenv(pgDbnameKey)
+	// pgHost := os.Getenv(pgHostKey)
+	// pgPort := os.Getenv(pgPortKey)
+	// pgSchema := os.Getenv(pgSchemaKey)
+
+	// outConnStr := fmt.Sprintf(
+	// 	"PG:dbname=%s user=%s password=%s host=%s port=%s schemas=%s",
+	// 	pgDB, pgUser, pgPass, pgHost, pgPort, pgSchema,
+	// )
+
+	// rw, err = lrw.InitSpatialResultsWriter_PSQL(outConnStr, outputLayerName, outputDriver, pgDB)
+	// if err != nil {
+	// 	log.Fatalf("Failed to initialize spatial psql result writer: %s\n", err)
+	// }
 	defer rw.Close()
 
 	//compute results

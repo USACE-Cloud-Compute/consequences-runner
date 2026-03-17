@@ -12,7 +12,7 @@ import (
 
 	"github.com/USACE/go-consequences/consequences"
 	"github.com/USACE/go-consequences/resultswriters"
-	"github.com/dewberry/gdal"
+	"github.com/corpsmap/gdal"
 	"github.com/usace-cloud-compute/cc-go-sdk"
 )
 

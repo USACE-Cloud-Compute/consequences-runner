@@ -3,8 +3,6 @@ gioui.org v0.0.0-20210308172011-57750fc8a0a6/go.mod h1:RSH6KIUZ0p2xy5zHDxgAM4zum
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
 github.com/HydrologicEngineeringCenter/go-statistics v0.0.0-20240126145250-a17483ae0981 h1:JFLYdHvF3mPN56AkXeaWm41bQ9eJFuSceCtXXtMWTNI=
 github.com/HydrologicEngineeringCenter/go-statistics v0.0.0-20240126145250-a17483ae0981/go.mod h1:ABek1cDzTXjGA4uwrB91/NriEROj8AnUDaX7xU+1L2E=
-github.com/USACE/go-consequences v0.0.0-20250731200338-7eee6afc377f h1:i4a5qJ/6ghF6VxJKCadp+Z6JHUzLgHwuoAXr7WEi2sQ=
-github.com/USACE/go-consequences v0.0.0-20250731200338-7eee6afc377f/go.mod h1:+HMvu5PLsam+TS7GCpeiraeCWjwD04/hcgz85kuQTM4=
 github.com/ajstarks/svgo v0.0.0-20180226025133-644b8db467af/go.mod h1:K08gAheRH3/J6wwsYMMT4xOr94bZjxIelGM0+d/wbFw=
 github.com/aws/aws-sdk-go-v2 v1.39.0 h1:xm5WV/2L4emMRmMjHFykqiA4M/ra0DJVSWUkDyBjbg4=
 github.com/aws/aws-sdk-go-v2 v1.39.0/go.mod h1:sDioUELIUO9Znk23YVmIk86/9DOpkbyyVb1i/gUNFXY=
@@ -51,11 +49,11 @@ github.com/buger/jsonparser v1.1.1 h1:2PnMjfWD7wBILjqQbt530v576A/cAbQvEW9gGIpYMU
 github.com/buger/jsonparser v1.1.1/go.mod h1:6RYKKt7H4d4+iWqouImQ9R2FZql3VbhNgx27UK13J/0=
 github.com/cockroachdb/apd v1.1.0 h1:3LFP3629v+1aKXU5Q37mxmRxX/pIu1nijXydLShEq5I=
 github.com/cockroachdb/apd v1.1.0/go.mod h1:8Sl8LxpKi29FqWXR16WEFZRNSz3SoPzUzeMeY4+DwBQ=
+github.com/corpsmap/gdal v0.0.0-20250402144219-54372f7cd16d h1:hmCyDh6Pmn0GYdI0BpskEUPeCQzF4q1AyWsohl8AOtQ=
+github.com/corpsmap/gdal v0.0.0-20250402144219-54372f7cd16d/go.mod h1:DlpMevMpCDA7rlmwdbiGeZjLGF1sqhVxnet+MwqofvY=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/dewberry/gdal v0.3.4 h1:bm49t5v9XsGujYiL1SNJbRJHRrVIugpU7D/mu1GuzXc=
-github.com/dewberry/gdal v0.3.4/go.mod h1:i6fpE1FZsyqYGxk7CWI4VR20rpnnsk0cggCx2pdeqME=
 github.com/fogleman/gg v1.2.1-0.20190220221249-0403632d5b90/go.mod h1:R/bRT+9gY/C5z7JzPU0zXsXHKM4/ayA+zqcVNZzPa1k=
 github.com/fogleman/gg v1.3.0/go.mod h1:R/bRT+9gY/C5z7JzPU0zXsXHKM4/ayA+zqcVNZzPa1k=
 github.com/frankban/quicktest v1.14.6 h1:7Xjx+VpznH+oBnejlPUj8oUpdxnVs4f8XU8WnHkI4W8=
@@ -105,8 +103,6 @@ github.com/spf13/cast v1.10.0/go.mod h1:jNfB8QC9IA6ZuY2ZjDp0KtFO2LZZlg4S/7bzP6qq
 github.com/stretchr/testify v1.2.2/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXfy6kDkUVs=
 github.com/stretchr/testify v1.8.4 h1:CcVxjf3Q8PM0mHUKJCdn+eZZtm5yQwehR5yeSVQQcUk=
 github.com/stretchr/testify v1.8.4/go.mod h1:sz/lmYIOXD/1dqDmKjjqLyZ2RngseejIcXlSw2iwfAo=
-github.com/usace-cloud-compute/cc-go-sdk v0.0.0-20251118163833-620acc79f197 h1:oM3e8JDPNyYjK3/aZHQkNDeWiE0D2/SPtFAr6haz3Hc=
-github.com/usace-cloud-compute/cc-go-sdk v0.0.0-20251118163833-620acc79f197/go.mod h1:HZsGTrNUUdjfqqJJaLpSBEKoIDmu/vnye2KK/AwchDo=
 github.com/usace-cloud-compute/cc-go-sdk v0.0.0-20251124210849-b455e063a7ea h1:tlM91GCRJ1gqc4dcFvfI6h8MI2l5FNR3Ehn+Rh4oDJw=
 github.com/usace-cloud-compute/cc-go-sdk v0.0.0-20251124210849-b455e063a7ea/go.mod h1:HZsGTrNUUdjfqqJJaLpSBEKoIDmu/vnye2KK/AwchDo=
 github.com/usace-cloud-compute/filesapi v0.0.0-20251107191432-8084e0da4b5c h1:1Srw2WpT9tcEIUY853oeojXJjPH8iTYFGLXPaIrUe+I=

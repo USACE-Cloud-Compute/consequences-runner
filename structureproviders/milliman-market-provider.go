@@ -10,7 +10,7 @@ import (
 	"github.com/USACE/go-consequences/consequences"
 	"github.com/USACE/go-consequences/geography"
 	"github.com/USACE/go-consequences/structures"
-	"github.com/dewberry/gdal"
+	"github.com/corpsmap/gdal"
 )
 
 type MillimanDataSet struct {

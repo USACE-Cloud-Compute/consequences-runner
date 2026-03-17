@@ -6,7 +6,7 @@ import (
 
 	"github.com/USACE/go-consequences/geography"
 	gc "github.com/USACE/go-consequences/hazardproviders"
-	"github.com/dewberry/gdal"
+	"github.com/corpsmap/gdal"
 )
 
 type cogReader struct {

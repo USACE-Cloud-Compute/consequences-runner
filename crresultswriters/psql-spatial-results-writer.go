@@ -3,13 +3,24 @@ package crresultswriters
 import (
 	"errors"
 	"fmt"
+	"log"
 	"reflect"
 	"strings"
 
 	"github.com/USACE/go-consequences/consequences"
 	"github.com/USACE/go-consequences/hazards"
-	"github.com/dewberry/gdal"
+	"github.com/corpsmap/gdal"
 )
+
+/*
+psql-spatial-results-writer.go -> gdal-spatial-results-writer.go
+psqlResultsWriter -> gdalResultsWriter
+
+add iniit method: InitSpatialResultsWriter_SQLITE
+
+move env loading of config to each respective InitResultWriter function
+
+*/
 
 // results writer for spatial data to psql database
 type psqlResultsWriter struct {
@@ -32,7 +43,10 @@ func (srw *psqlResultsWriter) Write(r consequences.Result) {
 	layerDef := srw.Layer.Definition()
 	//if header has been built, add the feature, and the attributes.
 
-	feature := layerDef.Create()
+	feature, featureOK := layerDef.Create()
+	if !featureOK {
+		log.Println("invalid feature")
+	}
 	defer feature.Destroy() // Destroy feature. I believe this also destroys the geometry object g, defined below. If feature is not destroyed, memory is not released
 	feature.SetFieldInteger(0, srw.index)
 	//create a point geometry - not sure the best way to do that.
