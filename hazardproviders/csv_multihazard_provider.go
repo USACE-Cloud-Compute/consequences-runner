@@ -1,11 +1,16 @@
 package hazardproviders
 
 import (
-	"errors"
+	"encoding/csv"
 	"fmt"
+	"os"
+	"strconv"
+	"strings"
+	"time"
 
 	"github.com/USACE/go-consequences/geography"
 	gc "github.com/USACE/go-consequences/hazardproviders"
+	"github.com/USACE/go-consequences/hazards"
 )
 
 type csvArrivalDepthDurationMultiHazardProvider struct {
@@ -13,12 +18,12 @@ type csvArrivalDepthDurationMultiHazardProvider struct {
 	arrivals  []time.Time
 	depths    []float64
 	durations []float64
-	process   HazardFunction
+	process   gc.HazardFunction
 	bbox      geography.BBox
 }
 
 func InitCSV(fp string, b geography.BBox) (csvArrivalDepthDurationMultiHazardProvider, error) {
-	fmt.Println("Connecting to: " + fp)
+	fmt.Println("Connecting to: " + fp) // should we confirm file is csv?
 	file, err := os.Open(fp)
 	if err != nil {
 		panic(err)

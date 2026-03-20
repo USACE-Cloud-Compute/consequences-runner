@@ -18,6 +18,7 @@ import (
 	"github.com/USACE/go-consequences/structures"
 	"github.com/usace-cloud-compute/cc-go-sdk"
 	lrw "github.com/usace-cloud-compute/consequences-runner/crresultswriters"
+	lhp "github.com/usace-cloud-compute/consequences-runner/hazardproviders"
 	"github.com/usace-cloud-compute/consequences-runner/structureproviders"
 )
 
@@ -32,30 +33,31 @@ const (
 	outputLayerName            string = "damages"
 	structureInventoryPathKey  string = "Inventory" //plugin datasource name required
 	//seedsDatasourceName        string = "seeds.json" //plugin datasource name required
-	depthgridDatasourceName       string = "depth-grid"    //plugin datasource name required
-	velocitygridDatasourceName    string = "velocity-grid" //plugin datasource name required
-	durationgridDatasourceName    string = "duration-grid" //plugin datasource name required
-	multiHazardDatasourceName string = "multiHazardcsv" //
-	studyAreaBboxKey string = "bbox"
-	outputDatasourceName          string = "Damages"       //plugin output datasource name required
-	localData                     string = "/app/data"
-	pluginName                    string = "consequences"
-	DepthGridPathsKey             string = "depth-grids"      // expected to contain the fully qualified vsis3 path set comma separated or the local path if the resource is included as an inputdatasource
-	VelocityGridPathsKey          string = "velocity-grids"   // expected to contain the fully qualified vsis3 path set comma separated or the local path if the resource is included as an inputdatasource
-	FrequenciesKey                string = "frequencies"      //expected to be comma separated string
-	inventoryPathKey              string = "Inventory"        //expected this is local - needs to agree with the payload input datasource name
-	damageFunctionPathKey         string = "damage-functions" //expected this is local - needs to agree with the payload input datasource name
-	projectIdKey                  string = "project-id"
-	runIdKey                      string = "run-id"
-	pgUserKey                     string = "PG_USER"
-	pgPasswordKey                 string = "PG_PASSWORD"
-	pgDbnameKey                   string = "PG_DBNAME"
-	pgHostKey                     string = "PG_HOST"
-	pgPortKey                     string = "PG_PORT"
-	pgSchemaKey                   string = "PG_SCHEMA"
-	computeEventActionName        string = "compute-event"
-	computeFrequencyActionName    string = "compute-frequency"
-	computeCoastalEventActionName string = "compute-coastal-event"
+	depthgridDatasourceName           string = "depth-grid"    //plugin datasource name required
+	velocitygridDatasourceName        string = "velocity-grid" //plugin datasource name required
+	durationgridDatasourceName        string = "duration-grid" //plugin datasource name required
+	stormSimEventsPath                string = "ss-events"     //
+	stormSimResponsesPath             string = "ss-responses"
+	stormSimReachesPath               string = "ss-reaches"
+	outputDatasourceName              string = "Damages" //plugin output datasource name required
+	localData                         string = "/app/data"
+	pluginName                        string = "consequences"
+	DepthGridPathsKey                 string = "depth-grids"      // expected to contain the fully qualified vsis3 path set comma separated or the local path if the resource is included as an inputdatasource
+	VelocityGridPathsKey              string = "velocity-grids"   // expected to contain the fully qualified vsis3 path set comma separated or the local path if the resource is included as an inputdatasource
+	FrequenciesKey                    string = "frequencies"      //expected to be comma separated string
+	inventoryPathKey                  string = "Inventory"        //expected this is local - needs to agree with the payload input datasource name
+	damageFunctionPathKey             string = "damage-functions" //expected this is local - needs to agree with the payload input datasource name
+	projectIdKey                      string = "project-id"
+	runIdKey                          string = "run-id"
+	pgUserKey                         string = "PG_USER"
+	pgPasswordKey                     string = "PG_PASSWORD"
+	pgDbnameKey                       string = "PG_DBNAME"
+	pgHostKey                         string = "PG_HOST"
+	pgPortKey                         string = "PG_PORT"
+	pgSchemaKey                       string = "PG_SCHEMA"
+	computeEventActionName            string = "compute-event"
+	computeFrequencyActionName        string = "compute-frequency"
+	computeCoastalEventActionName     string = "compute-coastal-event"
 	computeCoastalLifecycleActionName string = "compute-coastal-lifecycle"
 )
 
@@ -391,11 +393,12 @@ func (ar *ComputeFrequencyAction) Run() error {
 
 func (ar *ComputeCoastalLifecycleAction) Run() error {
 	a := ar.Action
-
 	// get all relevant parameters
 	tablename := a.Attributes.GetStringOrFail(tablenameKey)
-	hazardsCSVPathString := a.Attributes.GetStringOrFail(multiHazardDatasourceName)
-	studyAreaBbox := a.Attributes.GetStringOrFail(studyAreaBboxKey) //TODO: this will need to be cast as a geography.BBox{}
+	stormSimEventsPathString := a.Attributes.GetStringOrFail(stormSimEventsPath)
+	stormSimResponsesPathString := a.Attributes.GetStringOrFail(stormSimResponsesPath)
+	stormSimReachesPathString := a.Attributes.GetStringOrFail(stormSimReachesPath)
+
 	inventoryPath := a.Attributes.GetStringOrFail(inventoryPathKey) //expected this is local - needs to agree with the payload input datasource name
 	inventoryDriver := a.Attributes.GetStringOrFail(inventoryDriverKey)
 
@@ -404,11 +407,7 @@ func (ar *ComputeCoastalLifecycleAction) Run() error {
 	//useKnowledgeUncertainty, err := strconv.ParseBool(a.Parameters.GetStringOrFail(useKnowledgeUncertaintyKey))
 	damageFunctionPath := a.Attributes.GetStringOrFail(damageFunctionPathKey) //expected this is local - needs to agree with the payload input datasource name
 
-	b := geography>BBox{
-		BBox: studyAreaBbox
-	}
-
-	hp, err := InitCSV(hazardsCSVPathString, b)
+	hp, err := lhp.InitStormSim(stormSimEventsPathString, stormSimResponsesPathString, stormSimReachesPathString)
 	if err != nil {
 		panic(err)
 	}
@@ -617,10 +616,4 @@ func ComputeEAD(damages []float64, freq []float64) float64 {
 		eadT += xdelta * y1 //no extrapolation, just continue damages out as if it were truth for all remaining probability.
 	}
 	return eadT
-}
-
-
-func (ar *ComputeCoastalLifecycle) Run() error {
-
-	
 }
