@@ -50,8 +50,7 @@ func InitStormSim(eventsFP string, eventsDriver string, responsesFP string, resp
 		}
 	}
 
-	// parse stormResponsesFile
-	arrivals, depths, durations, err := ParseResponsesFile(responsesFP, "", eventsDriver, len(storm_ids))
+	arrivals, depths, durations, err := parseResponsesFile(responsesFP, "", eventsDriver, len(storm_ids))
 
 	// get bbox from reachesFile
 	//TODO: read geometry from gpkg
@@ -117,7 +116,7 @@ func reachesSchema() []string {
 	return s
 }
 
-func ParseResponsesFile(filepath string, layername string, driver string, n int) ([]time.Time, []float64, []float64, error) {
+func parseResponsesFile(filepath string, layername string, driver string, n int) ([]time.Time, []float64, []float64, error) {
 	arrivals := make([]time.Time, n)
 	depths := make([]float64, n)
 	durations := make([]float64, n)
