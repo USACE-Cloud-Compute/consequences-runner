@@ -37,8 +37,11 @@ const (
 	velocitygridDatasourceName        string = "velocity-grid" //plugin datasource name required
 	durationgridDatasourceName        string = "duration-grid" //plugin datasource name required
 	stormSimEventsPath                string = "ss-events"     //
+	stormSimEventsDriver              string = "ss-events-driver"
 	stormSimResponsesPath             string = "ss-responses"
+	stormSimResponsesDriver           string = "ss-responses-driver"
 	stormSimReachesPath               string = "ss-reaches"
+	stormSimReachesDriver             string = "ss-reaches-driver"
 	outputDatasourceName              string = "Damages" //plugin output datasource name required
 	localData                         string = "/app/data"
 	pluginName                        string = "consequences"
@@ -399,6 +402,10 @@ func (ar *ComputeCoastalLifecycleAction) Run() error {
 	stormSimResponsesPathString := a.Attributes.GetStringOrFail(stormSimResponsesPath)
 	stormSimReachesPathString := a.Attributes.GetStringOrFail(stormSimReachesPath)
 
+	ssEventsDriverString := a.Attributes.GetStringOrFail(stormSimEventsDriver)
+	ssResponsesDriverString := a.Attributes.GetStringOrFail(stormSimResponsesDriver)
+	ssReachesDriverString := a.Attributes.GetStringOrFail(stormSimReachesDriver)
+
 	inventoryPath := a.Attributes.GetStringOrFail(inventoryPathKey) //expected this is local - needs to agree with the payload input datasource name
 	inventoryDriver := a.Attributes.GetStringOrFail(inventoryDriverKey)
 
@@ -407,7 +414,7 @@ func (ar *ComputeCoastalLifecycleAction) Run() error {
 	//useKnowledgeUncertainty, err := strconv.ParseBool(a.Parameters.GetStringOrFail(useKnowledgeUncertaintyKey))
 	damageFunctionPath := a.Attributes.GetStringOrFail(damageFunctionPathKey) //expected this is local - needs to agree with the payload input datasource name
 
-	hp, err := lhp.InitStormSim(stormSimEventsPathString, stormSimResponsesPathString, stormSimReachesPathString)
+	hp, err := lhp.InitStormSim(stormSimEventsPathString, ssEventsDriverString, stormSimResponsesPathString, ssResponsesDriverString, stormSimReachesPathString, ssReachesDriverString)
 	if err != nil {
 		panic(err)
 	}
