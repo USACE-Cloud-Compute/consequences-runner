@@ -18,6 +18,7 @@ import (
 	"github.com/USACE/go-consequences/structures"
 	"github.com/usace-cloud-compute/cc-go-sdk"
 	lrw "github.com/usace-cloud-compute/consequences-runner/crresultswriters"
+	lhp "github.com/usace-cloud-compute/consequences-runner/hazardproviders"
 	"github.com/usace-cloud-compute/consequences-runner/structureproviders"
 )
 
@@ -32,34 +33,42 @@ const (
 	outputLayerName            string = "damages"
 	structureInventoryPathKey  string = "Inventory" //plugin datasource name required
 	//seedsDatasourceName        string = "seeds.json" //plugin datasource name required
-	depthgridDatasourceName       string = "depth-grid"    //plugin datasource name required
-	velocitygridDatasourceName    string = "velocity-grid" //plugin datasource name required
-	durationgridDatasourceName    string = "duration-grid" //plugin datasource name required
-	outputDatasourceName          string = "Damages"       //plugin output datasource name required
-	localData                     string = "/app/data"
-	pluginName                    string = "consequences"
-	DepthGridPathsKey             string = "depth-grids"      // expected to contain the fully qualified vsis3 path set comma separated or the local path if the resource is included as an inputdatasource
-	VelocityGridPathsKey          string = "velocity-grids"   // expected to contain the fully qualified vsis3 path set comma separated or the local path if the resource is included as an inputdatasource
-	FrequenciesKey                string = "frequencies"      //expected to be comma separated string
-	inventoryPathKey              string = "Inventory"        //expected this is local - needs to agree with the payload input datasource name
-	damageFunctionPathKey         string = "damage-functions" //expected this is local - needs to agree with the payload input datasource name
-	projectIdKey                  string = "project-id"
-	runIdKey                      string = "run-id"
-	pgUserKey                     string = "PG_USER"
-	pgPasswordKey                 string = "PG_PASSWORD"
-	pgDbnameKey                   string = "PG_DBNAME"
-	pgHostKey                     string = "PG_HOST"
-	pgPortKey                     string = "PG_PORT"
-	pgSchemaKey                   string = "PG_SCHEMA"
-	computeEventActionName        string = "compute-event"
-	computeFrequencyActionName    string = "compute-frequency"
-	computeCoastalEventActionName string = "compute-coastal-event"
+	depthgridDatasourceName           string = "depth-grid"    //plugin datasource name required
+	velocitygridDatasourceName        string = "velocity-grid" //plugin datasource name required
+	durationgridDatasourceName        string = "duration-grid" //plugin datasource name required
+	stormSimEventsPath                string = "ss-events"     //
+	stormSimEventsDriver              string = "ss-events-driver"
+	stormSimResponsesPath             string = "ss-responses"
+	stormSimResponsesDriver           string = "ss-responses-driver"
+	stormSimReachesPath               string = "ss-reaches"
+	stormSimReachesDriver             string = "ss-reaches-driver"
+	outputDatasourceName              string = "Damages" //plugin output datasource name required
+	localData                         string = "/app/data"
+	pluginName                        string = "consequences"
+	DepthGridPathsKey                 string = "depth-grids"      // expected to contain the fully qualified vsis3 path set comma separated or the local path if the resource is included as an inputdatasource
+	VelocityGridPathsKey              string = "velocity-grids"   // expected to contain the fully qualified vsis3 path set comma separated or the local path if the resource is included as an inputdatasource
+	FrequenciesKey                    string = "frequencies"      //expected to be comma separated string
+	inventoryPathKey                  string = "Inventory"        //expected this is local - needs to agree with the payload input datasource name
+	damageFunctionPathKey             string = "damage-functions" //expected this is local - needs to agree with the payload input datasource name
+	projectIdKey                      string = "project-id"
+	runIdKey                          string = "run-id"
+	pgUserKey                         string = "PG_USER"
+	pgPasswordKey                     string = "PG_PASSWORD"
+	pgDbnameKey                       string = "PG_DBNAME"
+	pgHostKey                         string = "PG_HOST"
+	pgPortKey                         string = "PG_PORT"
+	pgSchemaKey                       string = "PG_SCHEMA"
+	computeEventActionName            string = "compute-event"
+	computeFrequencyActionName        string = "compute-frequency"
+	computeCoastalEventActionName     string = "compute-coastal-event"
+	computeCoastalLifecycleActionName string = "compute-coastal-lifecycle"
 )
 
 func init() {
 	cc.ActionRegistry.RegisterAction(computeEventActionName, &ComputeEventAction{})
 	cc.ActionRegistry.RegisterAction(computeFrequencyActionName, &ComputeFrequencyAction{})
 	cc.ActionRegistry.RegisterAction(computeCoastalEventActionName, &ComputeCoastalEventAction{})
+	cc.ActionRegistry.RegisterAction(computeCoastalLifecycleActionName, &ComputeCoastalLifecycleAction{})
 }
 
 type ComputeEventAction struct {
@@ -69,6 +78,9 @@ type ComputeFrequencyAction struct {
 	cc.ActionRunnerBase
 }
 type ComputeCoastalEventAction struct {
+	cc.ActionRunnerBase
+}
+type ComputeCoastalLifecycleAction struct {
 	cc.ActionRunnerBase
 }
 
@@ -380,6 +392,113 @@ func (ar *ComputeFrequencyAction) Run() error {
 
 	ComputeMultiFrequency(hps, frequencies, abstractSP, rw)
 	return nil
+}
+
+func (ar *ComputeCoastalLifecycleAction) Run() error {
+	a := ar.Action
+	// get all relevant parameters
+	tablename := a.Attributes.GetStringOrFail(tablenameKey)
+	stormSimEventsPathString := a.Attributes.GetStringOrFail(stormSimEventsPath)
+	stormSimResponsesPathString := a.Attributes.GetStringOrFail(stormSimResponsesPath)
+	stormSimReachesPathString := a.Attributes.GetStringOrFail(stormSimReachesPath)
+
+	ssEventsDriverString := a.Attributes.GetStringOrFail(stormSimEventsDriver)
+	ssResponsesDriverString := a.Attributes.GetStringOrFail(stormSimResponsesDriver)
+	ssReachesDriverString := a.Attributes.GetStringOrFail(stormSimReachesDriver)
+
+	inventoryPath := a.Attributes.GetStringOrFail(inventoryPathKey) //expected this is local - needs to agree with the payload input datasource name
+	inventoryDriver := a.Attributes.GetStringOrFail(inventoryDriverKey)
+
+	outputDriver := a.Attributes.GetStringOrFail(outputDriverKey)
+	outputFileName := a.Attributes.GetStringOrFail(outputFileNameKey) //expected this is local - needs to agree with the payload output datasource name
+	//useKnowledgeUncertainty, err := strconv.ParseBool(a.Parameters.GetStringOrFail(useKnowledgeUncertaintyKey))
+	damageFunctionPath := a.Attributes.GetStringOrFail(damageFunctionPathKey) //expected this is local - needs to agree with the payload input datasource name
+
+	hp, err := lhp.InitStormSim(stormSimEventsPathString, ssEventsDriverString, stormSimResponsesPathString, ssResponsesDriverString, stormSimReachesPathString, ssReachesDriverString)
+	if err != nil {
+		panic(err)
+	}
+	defer hp.Close()
+
+	var abstractSP consequences.StreamProvider
+	var sr string
+	if inventoryDriver == "MILLIMAN" {
+		sp, err := structureproviders.InitMillimanStructureProviderwithOcctypePath(inventoryPath, damageFunctionPath)
+		sp.SetDeterministic(true)
+		if err != nil {
+			return err
+		}
+		fmt.Sprintln(sp.FilePath)
+		sr = sp.SpatialReference()
+		abstractSP = sp
+	} else {
+		sp, err := structureprovider.InitStructureProviderwithOcctypePath(inventoryPath, tablename, inventoryDriver, damageFunctionPath)
+		sp.SetDeterministic(true)
+		if err != nil {
+			return err
+		}
+		fmt.Sprintln(sp.FilePath)
+		sr = sp.SpatialReference()
+		abstractSP = sp
+	}
+
+	//initalize a results writer
+	var rw consequences.ResultsWriter
+	if outputDriver == "PostgreSQL" {
+		pgUser := os.Getenv(pgUserKey)
+		pgPass := os.Getenv(pgPasswordKey)
+		pgDB := os.Getenv(pgDbnameKey)
+		pgHost := os.Getenv(pgHostKey)
+		pgPort := os.Getenv(pgPortKey)
+		pgSchema := os.Getenv(pgSchemaKey)
+
+		outConnStr := fmt.Sprintf(
+			"PG:dbname=%s user=%s password=%s host=%s port=%s schemas=%s",
+			pgDB, pgUser, pgPass, pgHost, pgPort, pgSchema,
+		)
+
+		rw, err = lrw.InitSpatialResultsWriter_PSQL(outConnStr, outputLayerName, outputDriver, pgDB)
+		if err != nil {
+			log.Fatalf("Failed to initialize spatial psql result writer: %s\n", err)
+		}
+	} else {
+		outfp := fmt.Sprintf("%s/%s", localData, outputFileName)
+
+		rw, err = resultswriters.InitSpatialResultsWriter_WKT_Projected(outfp, outputLayerName, outputDriver, sr)
+		if err != nil {
+			log.Fatalf("Failed to initialize spatial result writer: %s\n", err)
+		}
+	}
+	defer rw.Close()
+
+	//compute results
+	//get boundingbox
+	fmt.Println("Getting bbox")
+	bbox, err := hp.HazardBoundary()
+	if err != nil {
+		log.Panicf("Unable to get the raster bounding box: %s", err)
+	}
+	fmt.Println(bbox.ToString())
+	abstractSP.ByBbox(bbox, func(f consequences.Receptor) {
+		//ProvideHazard works off of a geography.Location
+		d, err2 := hp.Hazard(geography.Location{X: f.Location().X, Y: f.Location().Y})
+		//compute damages based on hazard being able to provide depth
+		if err2 == nil {
+			r, err3 := f.Compute(d)
+			r.Headers = append(r.Headers, "multihazard")
+			bytes, err := json.Marshal(d)
+			s := ""
+			if err == nil {
+				s = string(bytes)
+			}
+			r.Result = append(r.Result, s)
+			if err3 == nil {
+				rw.Write(r)
+			}
+		}
+	})
+	return nil
+
 }
 func ComputeMultiFrequency(hps []hazardproviders.HazardProvider, freqs []float64, sp consequences.StreamProvider, w consequences.ResultsWriter) {
 	fmt.Printf("Computing %v frequencies\n", len(freqs))
