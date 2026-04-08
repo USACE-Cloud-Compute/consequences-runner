@@ -38,10 +38,14 @@ const (
 	durationgridDatasourceName        string = "duration-grid" //plugin datasource name required
 	stormSimEventsPath                string = "ss-events"     //
 	stormSimEventsDriver              string = "ss-events-driver"
+	stormSimEventsLayer               string = "ss-events-layer"
 	stormSimResponsesPath             string = "ss-responses"
 	stormSimResponsesDriver           string = "ss-responses-driver"
+	stormSimResponsesLayer            string = "ss-responses-layer"
 	stormSimReachesPath               string = "ss-reaches"
 	stormSimReachesDriver             string = "ss-reaches-driver"
+	stormSimReachesLayer              string = "ss-reaches-layer"
+	stormSimLifecycle                 string = "ss-lifecycle"
 	outputDatasourceName              string = "Damages" //plugin output datasource name required
 	localData                         string = "/app/data"
 	pluginName                        string = "consequences"
@@ -406,6 +410,16 @@ func (ar *ComputeCoastalLifecycleAction) Run() error {
 	ssResponsesDriverString := a.Attributes.GetStringOrFail(stormSimResponsesDriver)
 	ssReachesDriverString := a.Attributes.GetStringOrFail(stormSimReachesDriver)
 
+	ssEventsLayerString := a.Attributes.GetStringOrDefault(stormSimEventsLayer, "")
+	ssResponsesLayerString := a.Attributes.GetStringOrDefault(stormSimResponsesLayer, "")
+	ssReachesLayerString := a.Attributes.GetStringOrDefault(stormSimReachesLayer, "")
+
+	ssLC := a.Attributes.GetStringOrFail(stormSimLifecycle)
+	ssLifecycle, err := strconv.Atoi(ssLC)
+	if err != nil {
+		panic(err)
+	}
+
 	inventoryPath := a.Attributes.GetStringOrFail(inventoryPathKey) //expected this is local - needs to agree with the payload input datasource name
 	inventoryDriver := a.Attributes.GetStringOrFail(inventoryDriverKey)
 
@@ -414,7 +428,20 @@ func (ar *ComputeCoastalLifecycleAction) Run() error {
 	//useKnowledgeUncertainty, err := strconv.ParseBool(a.Parameters.GetStringOrFail(useKnowledgeUncertaintyKey))
 	damageFunctionPath := a.Attributes.GetStringOrFail(damageFunctionPathKey) //expected this is local - needs to agree with the payload input datasource name
 
-	hp, err := lhp.InitStormSim(stormSimEventsPathString, ssEventsDriverString, stormSimResponsesPathString, ssResponsesDriverString, stormSimReachesPathString, ssReachesDriverString)
+	ssi := lhp.StormSimInfo{
+		EventsFP:           stormSimEventsPathString,
+		EventsDriver:       ssEventsDriverString,
+		EventsLayername:    ssEventsLayerString,
+		ResponsesFP:        stormSimResponsesPathString,
+		ResponsesDriver:    ssResponsesDriverString,
+		ResponsesLayername: ssResponsesLayerString,
+		ReachesFP:          stormSimReachesPathString,
+		ReachesDriver:      ssReachesDriverString,
+		ReachesLayername:   ssReachesLayerString,
+		Lifecycle:          ssLifecycle,
+	}
+
+	hp, err := lhp.InitStormSim(ssi)
 	if err != nil {
 		panic(err)
 	}

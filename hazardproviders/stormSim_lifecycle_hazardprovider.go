@@ -1,10 +1,7 @@
 package hazardproviders
 
 import (
-	"encoding/csv"
 	"errors"
-	"os"
-	"strconv"
 	"time"
 
 	"github.com/USACE/go-consequences/geography"
@@ -20,86 +17,48 @@ type stormsimLifecycleMultiHazardProvider struct {
 	durations []float64
 	process   gc.HazardFunction
 	bbox      geography.BBox
+	geom      gdal.Geometry
 }
 
-func InitStormSim(eventsFP string, eventsDriver string, responsesFP string, responsesDriver string, reachesFP string, reachesDriver string) (stormsimLifecycleMultiHazardProvider, error) {
+// create struct to hold the arguments and
 
-	// parse eventsFile
-	// not needed. all info in eventsFile is also in stormResponsesFile
+type StormSimInfo struct {
+	EventsFP           string
+	EventsDriver       string
+	EventsLayername    string
+	ResponsesFP        string
+	ResponsesDriver    string
+	ResponsesLayername string
+	ReachesFP          string
+	ReachesDriver      string
+	ReachesLayername   string
+	Lifecycle          int
+}
 
-	//TODO: check file type. For now assume csv
-	eventsFile, err := os.Open(eventsFP)
+func InitStormSim(ssi StormSimInfo) (stormsimLifecycleMultiHazardProvider, error) {
+
+	reaches, err := parseReachesFile(ssi.ReachesFP, ssi.ReachesLayername, ssi.ReachesDriver)
+
+	events, err := parseEventsFile(ssi.EventsFP, ssi.EventsLayername, ssi.EventsDriver)
 	if err != nil {
 		panic(err)
-	}
-	eventReader := csv.NewReader(eventsFile)
-	rows, err := eventReader.ReadAll()
-	if err != nil {
-		panic(err)
-	}
-	storm_ids := []string{} // will use the length of this slice to pre-allocate slice sizes for parsed storms
-	for _, row := range rows[1:] {
-		lifecycle, err := strconv.Atoi(row[1])
-		if err != nil {
-			panic(err)
-		}
-		storm_id := row[8]
-		if lifecycle == 0 { // allow user to specify lifecycle?
-			// compute for multiHazard currently doesn't support multiple lifecycles
-			storm_ids = append(storm_ids, storm_id)
-		}
 	}
 
-	arrivals, depths, durations, err := parseResponsesFile(responsesFP, "", eventsDriver, len(storm_ids))
+	//TODO: how to handle case where there are multiple reaches?
+	reach := reaches[0]
+	reachevents := events[reach.reachID]
 
-	// get bbox from reachesFile
-	//TODO: read geometry from gpkg
-	// using csv for now
-	reachesFile, err := os.Open(reachesFP)
-	if err != nil {
-		panic(err)
-	}
-	reachesReader := csv.NewReader(reachesFile)
-	rows2, err := reachesReader.ReadAll()
-	if err != nil {
-		panic(err)
-	}
-	coords := rows2[1]
-	xmin, err := strconv.ParseFloat(coords[1], 64)
-	if err != nil {
-		panic(err)
-	}
-	ymin, err := strconv.ParseFloat(coords[2], 64)
-	if err != nil {
-		panic(err)
-	}
-	xmax, err := strconv.ParseFloat(coords[3], 64)
-	if err != nil {
-		panic(err)
-	}
-	ymax, err := strconv.ParseFloat(coords[4], 64)
-	if err != nil {
-		panic(err)
-	}
-	b := geography.BBox{
-		Bbox: []float64{xmin, ymin, xmax, ymax},
-	}
+	add, err := parseResponsesFile(ssi.ResponsesFP, ssi.ResponsesLayername, ssi.ResponsesDriver, len(reachevents), ssi.Lifecycle)
 
 	return stormsimLifecycleMultiHazardProvider{
-		arrivals:  arrivals,
-		depths:    depths,
-		durations: durations,
+		arrivals:  add.arrivals,
+		depths:    add.depths,
+		durations: add.durations,
 		process:   gc.ArrivalDepthAndDurationHazardFunction(),
-		bbox:      b,
+		bbox:      reach.Bbox,
+		geom:      reach.Geom,
 	}, nil
 }
-
-// type gdalDataSet struct {
-// 	FilePath  string
-// 	LayerName string
-// 	schemaIDX []int
-// 	ds        *gdal.DataSource
-// }
 
 func eventsSchema() []string {
 	s := []string{"location_id", "lifecycle", "year_offset", "year", "month", "day", "hour", "timestamp", "storm_id"}
@@ -107,7 +66,7 @@ func eventsSchema() []string {
 }
 
 func responsesSchema() []string {
-	s := []string{"location_id", "date", "storm_id", "lifecycle", "stage"}
+	s := []string{"location_id", "date", "stormevent_id", "storm_id", "lifecycle", "stage"}
 	return s
 }
 
@@ -116,11 +75,129 @@ func reachesSchema() []string {
 	return s
 }
 
-func parseResponsesFile(filepath string, layername string, driver string, n int) ([]time.Time, []float64, []float64, error) {
+type Reach struct {
+	reachID   string
+	reachName string
+	Bbox      geography.BBox
+	Geom      gdal.Geometry
+}
+
+func parseReachesFile(filepath string, layername string, driver string) ([]Reach, error) {
+	var ret = []Reach{}
+
+	d := gdal.OGRDriverByName(driver)
+	ds, dsok := d.Open(filepath, int(gdal.ReadOnly))
+	if !dsok {
+		return ret, errors.New("error opening reaches file of type " + driver)
+	}
+
+	var layer gdal.Layer
+	if layername != "" {
+		layer = ds.LayerByName(layername)
+	} else {
+		layer = ds.LayerByIndex(0)
+	}
+	def := layer.Definition()
+	s := reachesSchema()
+	sIDX := make([]int, len(s))
+
+	for i, f := range s {
+		idx := def.FieldIndex(f)
+		if idx < 0 {
+			return ret, errors.New("gdal dataset at path " + filepath + " Expected field named " + f + " none was found")
+		}
+		sIDX[i] = idx
+	}
+
+	fc, _ := layer.FeatureCount(true)
+	ret = make([]Reach, fc)
+
+	for i := range fc {
+		feat := layer.NextFeature()
+		if feat != nil {
+			//NOTE: "Name", "NameAbbreviated", "Note", "NOAAStation", "NOAAStationName", "SavePoint", "geom"
+			reach_id := feat.FieldAsString(sIDX[1])
+			reach_name := feat.FieldAsString(sIDX[0])
+			geom := feat.Geometry()
+			env := geom.Envelope()
+			xmin := env.MinX()
+			xmax := env.MaxX()
+			ymin := env.MinY()
+			ymax := env.MaxY()
+			bb := geography.BBox{Bbox: []float64{xmin, ymin, xmax, ymax}}
+			ret[i] = Reach{reachID: reach_id, reachName: reach_name, Geom: geom, Bbox: bb}
+		}
+	}
+
+	return ret, nil
+}
+
+func parseEventsFile(filepath string, layername string, driver string) (map[string]map[int][]string, error) {
+	ret := make(map[string]map[int][]string) // map[location_id]map[lifecycle][]storm_ids
+
+	d := gdal.OGRDriverByName(driver)
+	ds, dsok := d.Open(filepath, int(gdal.ReadOnly))
+	if !dsok {
+		return ret, errors.New("error opening events file of type " + driver)
+	}
+
+	var layer gdal.Layer
+	if layername != "" {
+		layer = ds.LayerByName(layername)
+	} else {
+		layer = ds.LayerByIndex(0)
+	}
+	def := layer.Definition()
+	s := eventsSchema()
+	sIDX := make([]int, len(s))
+
+	for i, f := range s {
+		idx := def.FieldIndex(f)
+		if idx < 0 {
+			return ret, errors.New("gdal dataset at path " + filepath + " Expected field named " + f + " none was found")
+		}
+		sIDX[i] = idx
+	}
+
+	fc, _ := layer.FeatureCount(true)
+
+	for range fc {
+		feat := layer.NextFeature()
+		if feat != nil {
+			//NOTE: "location_id", "lifecycle", "year_offset", "year", "month", "day", "hour", "timestamp", "storm_id"
+			loc_id := feat.FieldAsString(sIDX[0])
+			lifecycle := feat.FieldAsInteger(sIDX[1])
+			storm_id := feat.FieldAsString(sIDX[8])
+
+			if ret[loc_id] == nil {
+				ret[loc_id] = make(map[int][]string)
+			}
+			if ret[loc_id][lifecycle] == nil {
+				ret[loc_id][lifecycle] = []string{storm_id}
+			} else {
+				ret[loc_id][lifecycle] = append(ret[loc_id][lifecycle], storm_id)
+			}
+		}
+	}
+
+	return ret, nil
+}
+
+type ADDInfo struct {
+	arrivals  []time.Time
+	depths    []float64
+	durations []float64
+}
+
+func parseResponsesFile(filepath string, layername string, driver string, n int, lifecycle int) (ADDInfo, error) {
 	arrivals := make([]time.Time, n)
 	depths := make([]float64, n)
 	durations := make([]float64, n)
-	//TODO: combine arrivals, depths, durations into an ADD struct to reduce number of return values
+	ret := ADDInfo{
+		arrivals:  arrivals,
+		depths:    depths,
+		durations: durations,
+	}
 
 	d := gdal.OGRDriverByName(driver)
 	// for i := 0; i < gdal.OGRDriverCount(); i++ { // can use this to ensure given driver is available
@@ -129,10 +206,15 @@ func parseResponsesFile(filepath string, layername string, driver string, n int)
 
 	ds, dsok := d.Open(filepath, int(gdal.ReadOnly))
 	if !dsok {
-		return arrivals, depths, durations, errors.New("error opening responses file of type " + driver)
+		return ret, errors.New("error opening responses file of type " + driver)
 	}
 
-	layer := ds.LayerByIndex(0)
+	var layer gdal.Layer
+	if layername != "" {
+		layer = ds.LayerByName(layername)
+	} else {
+		layer = ds.LayerByIndex(0)
+	}
 	def := layer.Definition()
 
 	s := responsesSchema()
@@ -141,23 +223,16 @@ func parseResponsesFile(filepath string, layername string, driver string, n int)
 	for i, f := range s {
 		idx := def.FieldIndex(f)
 		if idx < 0 {
-			return arrivals, depths, durations, errors.New("gdal dataset at path " + filepath + " Expected field named " + f + " none was found")
+			return ret, errors.New("gdal dataset at path " + filepath + " Expected field named " + f + " none was found")
 		}
 		sIDX[i] = idx
 	}
-
-	// fmt.Println(layer.Name())
-	// fmt.Println(layer.Definition().FieldCount())
-
-	// for j := 0; j < layer.Definition().FieldCount(); j++ {
-	// 	fmt.Println(layer.Definition().FieldDefinition(j).Name())
-	// }
 
 	fc, _ := layer.FeatureCount(true)
 	// fmt.Printf("The layer has %v features\n", fc)
 	var curStormIndex int = 0
 	var curStormID string
-	var curStormLifecycle int
+	var curStormLifecycle int //
 	var curStormStart time.Time
 	var curStormEnd time.Time
 	var curStormPeakStage float64
@@ -165,17 +240,17 @@ func parseResponsesFile(filepath string, layername string, driver string, n int)
 	for i := range fc {
 		feat := layer.NextFeature()
 		if feat != nil {
-			// "location_id", "date", "storm_id", "lifecycle", "stage"
-			d := feat.FieldAsString(sIDX[1]) // also returns a bool. Does true mean ok?
+			d := feat.FieldAsString(sIDX[1])
 			date_i, err := time.Parse("2006-01-02 15:04:05", d)
 			if err != nil {
 				panic(err)
 			}
 			storm_id := feat.FieldAsString(sIDX[2])
-			lifecycle_i := feat.FieldAsInteger(sIDX[3])
-			stage_i := feat.FieldAsFloat64(sIDX[4]) // how to handle possible NA values here?
+			lifecycle_i := feat.FieldAsInteger(sIDX[4])
+			//TODO: handle NA values for stage
+			stage_i := feat.FieldAsFloat64(sIDX[5])
 
-			if (storm_id == curStormID) && (lifecycle_i == curStormLifecycle) {
+			if storm_id == curStormID {
 				curStormEnd = date_i
 				if stage_i > curStormPeakStage {
 					curStormPeakStage = stage_i
@@ -184,15 +259,16 @@ func parseResponsesFile(filepath string, layername string, driver string, n int)
 			} else {
 				// we've reached a new storm in the series
 				// save results from previous storm
-				if i > 0 { // can't save previous storm on row 0
-					if curStormLifecycle == 0 { // not handling multiple lifecycles currently
-						arrivals[curStormIndex] = curStormStart
-						depths[curStormIndex] = curStormPeakStage
+				if i > 0 { // can't save previous storm if we're on row 0
+					if curStormLifecycle == lifecycle { // not handling multiple lifecycles currently
+						ret.arrivals[curStormIndex] = curStormStart
+						ret.depths[curStormIndex] = curStormPeakStage
 						duration := curStormEnd.Sub(curStormStart)
-						durations[curStormIndex] = duration.Hours() / 24.0
+						ret.durations[curStormIndex] = duration.Hours() / 24.0
 						curStormIndex++
 					}
 				}
+				// reset all tracking variables to current row
 				curStormID = storm_id
 				curStormLifecycle = lifecycle_i
 				curStormStart = date_i
@@ -202,15 +278,11 @@ func parseResponsesFile(filepath string, layername string, driver string, n int)
 			}
 		}
 	}
-	// need to add final storm details to slices
-	if curStormLifecycle == 0 {
-		arrivals[curStormIndex] = curStormStart
-		depths[curStormIndex] = curStormPeakStage
-		duration := curStormEnd.Sub(curStormStart)
-		durations[curStormIndex] = duration.Hours() * 24.0
-
-	}
-	return arrivals, depths, durations, nil
+	ret.arrivals[curStormIndex] = curStormStart
+	ret.depths[curStormIndex] = curStormPeakStage
+	duration := curStormEnd.Sub(curStormStart)
+	ret.durations[curStormIndex] = duration.Hours() / 24.0
+	return ret, nil
 }
 
 func (c stormsimLifecycleMultiHazardProvider) Close() {
@@ -237,6 +309,12 @@ func (c stormsimLifecycleMultiHazardProvider) Hazard(l geography.Location) (haza
 			panic(err)
 		}
 		hm.Append(h.(hazards.ArrivalDepthandDurationEvent))
+	}
+	test_geom := gdal.Create(gdal.GT_Point)
+	test_geom.AddPoint(l.X, l.Y, 0)
+
+	if !c.geom.Contains(test_geom) {
+		return &hm, errors.New("Provided hazard location is outside the reach boundary")
 	}
 	return &hm, nil
 }
