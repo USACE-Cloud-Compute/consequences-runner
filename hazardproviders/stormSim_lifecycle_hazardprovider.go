@@ -38,7 +38,9 @@ type StormSimInfo struct {
 func InitStormSim(ssi StormSimInfo) (stormsimLifecycleMultiHazardProvider, error) {
 
 	reaches, err := parseReachesFile(ssi.ReachesFP, ssi.ReachesLayername, ssi.ReachesDriver)
-
+	if err != nil {
+		panic(err)
+	}
 	events, err := parseEventsFile(ssi.EventsFP, ssi.EventsLayername, ssi.EventsDriver)
 	if err != nil {
 		panic(err)
@@ -46,7 +48,7 @@ func InitStormSim(ssi StormSimInfo) (stormsimLifecycleMultiHazardProvider, error
 
 	//TODO: how to handle case where there are multiple reaches?
 	reach := reaches[0]
-	reachevents := events[reach.reachID]
+	reachevents := events[reach.reachID][ssi.Lifecycle]
 
 	add, err := parseResponsesFile(ssi.ResponsesFP, ssi.ResponsesLayername, ssi.ResponsesDriver, len(reachevents), ssi.Lifecycle)
 
@@ -71,7 +73,7 @@ func responsesSchema() []string {
 }
 
 func reachesSchema() []string {
-	s := []string{"Name", "NameAbbreviated", "Note", "NOAAStation", "NOAAStationName", "SavePoint", "geom"}
+	s := []string{"Name", "NameAbbreviated", "Note", "NOAAStation", "NOAAStationName", "SavePoint"}
 	return s
 }
 
@@ -103,6 +105,7 @@ func parseReachesFile(filepath string, layername string, driver string) ([]Reach
 
 	for i, f := range s {
 		idx := def.FieldIndex(f)
+
 		if idx < 0 {
 			return ret, errors.New("gdal dataset at path " + filepath + " Expected field named " + f + " none was found")
 		}
