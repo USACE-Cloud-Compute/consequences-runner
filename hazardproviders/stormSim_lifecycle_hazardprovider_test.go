@@ -26,6 +26,7 @@ func Test_ParseEventsFile(t *testing.T) {
 		}
 	}
 }
+
 func Test_ParseResponsesFile(t *testing.T) {
 	responsesFP := "/workspaces/consequences-runner/data/coastal/stage_responses_loc_DE001_lc_0.csv"
 

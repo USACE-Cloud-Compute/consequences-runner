@@ -1,12 +1,12 @@
-FROM ghcr.io/usace-cloud-compute/cc-tiledb-base:latest as dev
+FROM ghcr.io/osgeo/gdal:ubuntu-full-3.8.3 as dev
 
-ARG TILEDB_LIB=/usr/local/lib/tiledb
+# ARG TILEDB_LIB=/usr/local/lib/tiledb
 ARG GO_VERSION=1.24.5
 ARG TARGETARCH
 
 ENV PATH=/go/bin:$PATH
-ENV CGO_LDFLAGS="-L${TILEDB_LIB}/lib"
-ENV CGO_CFLAGS="-I${TILEDB_LIB}/include"
+# ENV CGO_LDFLAGS="-L${TILEDB_LIB}/lib"
+# ENV CGO_CFLAGS="-I${TILEDB_LIB}/include"
 ENV GOROOT=/go
 ENV GOPATH=/src/go
 
@@ -15,6 +15,7 @@ RUN echo "Building for arch: ${TARGETARCH}" &&\
     tar -xvzf /go${GO_VERSION}.linux-${TARGETARCH}.tar.gz -C / 
     
 RUN apt update
+RUN apt -y install git
 RUN apt -y install gdal-data 
 RUN apt -y install gdal-bin 
 RUN apt -y install libgdal-dev

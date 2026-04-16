@@ -2,6 +2,7 @@ package hazardproviders
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/USACE/go-consequences/geography"
@@ -243,11 +244,19 @@ func parseResponsesFile(filepath string, layername string, driver string, n int,
 	for i := range fc {
 		feat := layer.NextFeature()
 		if feat != nil {
-			d := feat.FieldAsString(sIDX[1])
-			date_i, err := time.Parse("2006-01-02 15:04:05", d)
-			if err != nil {
-				panic(err)
+			var date_i time.Time
+			date_i, dtok := feat.FieldAsDateTime(sIDX[1])
+			if !dtok {
+				// GDAL doesn't seem to recognize DateTime strings in csv files as DateTimes
+				fmt.Println("Failed to parse date field as DateTime. Attempting to parse from string with format 'YYYY-MM-DD HH:MM:SS'")
+				ds := feat.FieldAsString(sIDX[1])
+				var err error
+				date_i, err = time.Parse("2006-01-02 15:04:05", ds)
+				if err != nil {
+					panic(err)
+				}
 			}
+
 			storm_id := feat.FieldAsString(sIDX[2])
 			lifecycle_i := feat.FieldAsInteger(sIDX[4])
 			//TODO: handle NA values for stage
