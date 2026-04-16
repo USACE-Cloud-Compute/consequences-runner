@@ -137,8 +137,3 @@ func Test_Format(t *testing.T) {
 	}
 
 }
-
-func Test_ComputeCoastalEventAction(t *testing.T) {
-
-	main()
-}

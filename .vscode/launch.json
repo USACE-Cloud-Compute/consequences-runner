@@ -52,7 +52,7 @@
             "program": "${workspaceFolder}",
             "args": [
                 "-test.run",
-                "Test_ComputeCoastalEventAction"
+                "Test_Main"
             ],
             "envFile": "/workspaces/consequences-runner/.env-coastal-lifecycle"
         },{

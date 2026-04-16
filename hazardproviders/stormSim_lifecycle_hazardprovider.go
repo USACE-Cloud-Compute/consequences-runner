@@ -188,12 +188,14 @@ func parseEventsFile(filepath string, layername string, driver string) (map[stri
 }
 
 type ADDInfo struct {
+	storm_ids []string
 	arrivals  []time.Time
 	depths    []float64
 	durations []float64
 }
 
 func parseResponsesFile(filepath string, layername string, driver string, n int, lifecycle int) (ADDInfo, error) {
+
 	arrivals := make([]time.Time, n)
 	depths := make([]float64, n)
 	durations := make([]float64, n)

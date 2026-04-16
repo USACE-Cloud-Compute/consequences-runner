@@ -17,6 +17,7 @@ import (
 	"github.com/USACE/go-consequences/structureprovider"
 	"github.com/USACE/go-consequences/structures"
 	"github.com/usace-cloud-compute/cc-go-sdk"
+	"github.com/usace-cloud-compute/consequences-runner/crresultswriters"
 	lrw "github.com/usace-cloud-compute/consequences-runner/crresultswriters"
 	lhp "github.com/usace-cloud-compute/consequences-runner/hazardproviders"
 	"github.com/usace-cloud-compute/consequences-runner/structureproviders"
@@ -448,7 +449,7 @@ func (ar *ComputeCoastalLifecycleAction) Run() error {
 	defer hp.Close()
 
 	var abstractSP consequences.StreamProvider
-	var sr string
+	// var sr string
 	if inventoryDriver == "MILLIMAN" {
 		sp, err := structureproviders.InitMillimanStructureProviderwithOcctypePath(inventoryPath, damageFunctionPath)
 		sp.SetDeterministic(true)
@@ -456,7 +457,7 @@ func (ar *ComputeCoastalLifecycleAction) Run() error {
 			return err
 		}
 		fmt.Sprintln(sp.FilePath)
-		sr = sp.SpatialReference()
+		// sr = sp.SpatialReference()
 		abstractSP = sp
 	} else {
 		sp, err := structureprovider.InitStructureProviderwithOcctypePath(inventoryPath, tablename, inventoryDriver, damageFunctionPath)
@@ -465,36 +466,17 @@ func (ar *ComputeCoastalLifecycleAction) Run() error {
 			return err
 		}
 		fmt.Sprintln(sp.FilePath)
-		sr = sp.SpatialReference()
+		// sr = sp.SpatialReference()
 		abstractSP = sp
 	}
 
 	//initalize a results writer
-	var rw consequences.ResultsWriter
-	if outputDriver == "PostgreSQL" {
-		pgUser := os.Getenv(pgUserKey)
-		pgPass := os.Getenv(pgPasswordKey)
-		pgDB := os.Getenv(pgDbnameKey)
-		pgHost := os.Getenv(pgHostKey)
-		pgPort := os.Getenv(pgPortKey)
-		pgSchema := os.Getenv(pgSchemaKey)
-
-		outConnStr := fmt.Sprintf(
-			"PG:dbname=%s user=%s password=%s host=%s port=%s schemas=%s",
-			pgDB, pgUser, pgPass, pgHost, pgPort, pgSchema,
-		)
-
-		rw, err = lrw.InitSpatialResultsWriter_PSQL(outConnStr, outputLayerName, outputDriver, pgDB)
-		if err != nil {
-			log.Fatalf("Failed to initialize spatial psql result writer: %s\n", err)
-		}
-	} else {
-		outfp := fmt.Sprintf("%s/%s", localData, outputFileName)
-
-		rw, err = resultswriters.InitSpatialResultsWriter_WKT_Projected(outfp, outputLayerName, outputDriver, sr)
-		if err != nil {
-			log.Fatalf("Failed to initialize spatial result writer: %s\n", err)
-		}
+	//TODO: add more key-value pairs to payload for summary and events results writer details
+	summaryResultsFile := fmt.Sprintf("summary_%s", outputFileName)
+	eventsResultsFile := fmt.Sprintf("events_%s", outputFileName)
+	rw, err := crresultswriters.InitLifecycleResultsWriter(summaryResultsFile, "summary_results", outputDriver, eventsResultsFile, "event_results", outputDriver)
+	if err != nil {
+		panic(err)
 	}
 	defer rw.Close()
 
@@ -509,6 +491,7 @@ func (ar *ComputeCoastalLifecycleAction) Run() error {
 	abstractSP.ByBbox(bbox, func(f consequences.Receptor) {
 		//ProvideHazard works off of a geography.Location
 		d, err2 := hp.Hazard(geography.Location{X: f.Location().X, Y: f.Location().Y})
+
 		//compute damages based on hazard being able to provide depth
 		if err2 == nil {
 			r, err3 := f.Compute(d)
