@@ -13,6 +13,7 @@ import (
 
 type stormsimLifecycleMultiHazardProvider struct {
 	// specify drivers for each?
+	storm_ids []string
 	arrivals  []time.Time
 	depths    []float64
 	durations []float64
@@ -20,8 +21,6 @@ type stormsimLifecycleMultiHazardProvider struct {
 	bbox      geography.BBox
 	geom      gdal.Geometry
 }
-
-// create struct to hold the arguments and
 
 type StormSimInfo struct {
 	EventsFP           string
@@ -34,6 +33,12 @@ type StormSimInfo struct {
 	ReachesDriver      string
 	ReachesLayername   string
 	Lifecycle          int
+}
+type ADDInfo struct {
+	storm_ids []string
+	arrivals  []time.Time
+	depths    []float64
+	durations []float64
 }
 
 func InitStormSim(ssi StormSimInfo) (stormsimLifecycleMultiHazardProvider, error) {
@@ -54,6 +59,7 @@ func InitStormSim(ssi StormSimInfo) (stormsimLifecycleMultiHazardProvider, error
 	add, err := parseResponsesFile(ssi.ResponsesFP, ssi.ResponsesLayername, ssi.ResponsesDriver, len(reachevents), ssi.Lifecycle)
 
 	return stormsimLifecycleMultiHazardProvider{
+		storm_ids: add.storm_ids,
 		arrivals:  add.arrivals,
 		depths:    add.depths,
 		durations: add.durations,
@@ -187,19 +193,15 @@ func parseEventsFile(filepath string, layername string, driver string) (map[stri
 	return ret, nil
 }
 
-type ADDInfo struct {
-	storm_ids []string
-	arrivals  []time.Time
-	depths    []float64
-	durations []float64
-}
-
 func parseResponsesFile(filepath string, layername string, driver string, n int, lifecycle int) (ADDInfo, error) {
 
+	storm_ids := make([]string, n)
 	arrivals := make([]time.Time, n)
 	depths := make([]float64, n)
 	durations := make([]float64, n)
+
 	ret := ADDInfo{
+		storm_ids: storm_ids,
 		arrivals:  arrivals,
 		depths:    depths,
 		durations: durations,
@@ -259,7 +261,7 @@ func parseResponsesFile(filepath string, layername string, driver string, n int,
 				}
 			}
 
-			storm_id := feat.FieldAsString(sIDX[2])
+			storm_id := feat.FieldAsString(sIDX[2]) // This is the stormevent_id which is guaranteed to be unique
 			lifecycle_i := feat.FieldAsInteger(sIDX[4])
 			//TODO: handle NA values for stage
 			stage_i := feat.FieldAsFloat64(sIDX[5])
@@ -275,6 +277,7 @@ func parseResponsesFile(filepath string, layername string, driver string, n int,
 				// save results from previous storm
 				if i > 0 { // can't save previous storm if we're on row 0
 					if curStormLifecycle == lifecycle { // not handling multiple lifecycles currently
+						ret.storm_ids[curStormIndex] = curStormID
 						ret.arrivals[curStormIndex] = curStormStart
 						ret.depths[curStormIndex] = curStormPeakStage
 						duration := curStormEnd.Sub(curStormStart)
@@ -292,6 +295,7 @@ func parseResponsesFile(filepath string, layername string, driver string, n int,
 			}
 		}
 	}
+	ret.storm_ids[curStormIndex] = curStormID
 	ret.arrivals[curStormIndex] = curStormStart
 	ret.depths[curStormIndex] = curStormPeakStage
 	duration := curStormEnd.Sub(curStormStart)
@@ -315,7 +319,7 @@ func (c stormsimLifecycleMultiHazardProvider) Hazard(l geography.Location) (haza
 			Duration:    c.durations[i],
 			WaveHeight:  0,
 			Salinity:    false,
-			Qualitative: "",
+			Qualitative: c.storm_ids[i], // Will using this field break something else? (original value = "")
 		}
 		var h hazards.HazardEvent
 		h, err := c.process(hd, h)

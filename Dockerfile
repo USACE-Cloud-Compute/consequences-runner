@@ -1,4 +1,4 @@
-FROM ghcr.io/osgeo/gdal:ubuntu-full-3.8.3 as dev
+FROM ghcr.io/osgeo/gdal:ubuntu-full-3.8.3 AS dev
 
 # ARG TILEDB_LIB=/usr/local/lib/tiledb
 ARG GO_VERSION=1.24.5
@@ -14,14 +14,15 @@ RUN echo "Building for arch: ${TARGETARCH}" &&\
     wget https://golang.org/dl/go${GO_VERSION}.linux-${TARGETARCH}.tar.gz -P / &&\
     tar -xvzf /go${GO_VERSION}.linux-${TARGETARCH}.tar.gz -C / 
     
-RUN apt update
-RUN apt -y install git
-RUN apt -y install gdal-data 
-RUN apt -y install gdal-bin 
-RUN apt -y install libgdal-dev
+RUN apt-get update && apt-get install -y \
+    gdal-data \
+    gdal-bin \
+    libgdal-dev\
+    git \
+&& rm -rf /var/lib/apt/lists/*
 #------------
 
-FROM dev as builder
+FROM dev AS builder
 
 COPY . /src
 
