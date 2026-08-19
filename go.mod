@@ -4,7 +4,7 @@ go 1.24
 
 require (
 	github.com/HydrologicEngineeringCenter/go-statistics v0.0.0-20240126145250-a17483ae0981
-	github.com/USACE/go-consequences v0.0.0-20260508153829-beba90fe5362
+	github.com/USACE/go-consequences v0.0.0-20260522185708-ff58ac0a4e27
 	github.com/dewberry/gdal v0.3.4
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/usace-cloud-compute/cc-go-sdk v0.0.0-20251124210849-b455e063a7ea
@@ -15,6 +15,7 @@ require (
 	github.com/furstenheim/ConcaveHull v0.0.0-20181124172300-79de6d753046
 	github.com/tidwall/rtree v1.10.0
 	github.com/usace-cloud-compute/filesapi v0.0.0-20251107191432-8084e0da4b5c
+	github.com/usace/go-hdf5 v0.0.0-20230626152743-72d0ae21fd0c
 )
 
 require (
