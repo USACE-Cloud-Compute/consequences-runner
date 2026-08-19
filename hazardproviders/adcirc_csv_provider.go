@@ -10,7 +10,7 @@ import (
 	"github.com/usace-cloud-compute/consequences-runner/geometry"
 )
 
-type csvHazardProvider struct {
+type adcircCSVHazardProvider struct {
 	//csv *csv.Reader
 	ds                       *geometry.Tin
 	queryCount               int64
@@ -19,25 +19,25 @@ type csvHazardProvider struct {
 }
 
 // Init creates and produces an unexported csvHazardProvider
-func InitAdcercCSV(fp string) *csvHazardProvider {
+func InitAdcircCSV(fp string) *adcircCSVHazardProvider {
 	// Open the file
 	t, err := process_TIN(fp)
 	if err != nil {
 		panic(err)
 	}
 	c := time.Now()
-	return &csvHazardProvider{ds: t, computeStart: c}
+	return &adcircCSVHazardProvider{ds: t, computeStart: c}
 }
-func InitWithGrd(fp string, grdfp string) *csvHazardProvider {
+func InitWithGrd(fp string, grdfp string) *adcircCSVHazardProvider {
 	// Open the file
 	t, err := processGrdAndCSV(grdfp, fp)
 	if err != nil {
 		panic(err)
 	}
 	c := time.Now()
-	return &csvHazardProvider{ds: t, computeStart: c}
+	return &adcircCSVHazardProvider{ds: t, computeStart: c}
 }
-func InitWithGrdAndWave(grdfp string, swlfp string, hmofp string) *csvHazardProvider {
+func InitWithGrdAndWave(grdfp string, swlfp string, hmofp string) *adcircCSVHazardProvider {
 	// Open the file
 	t, err := processGrdAndCSVs(grdfp, swlfp, hmofp)
 	if err != nil {
@@ -46,12 +46,13 @@ func InitWithGrdAndWave(grdfp string, swlfp string, hmofp string) *csvHazardProv
 	//jsonfp := strings.Replace(grdfp, ".grd", ".json", -1)
 	//t.Hull.ToGeoJson(jsonfp)
 	c := time.Now()
-	return &csvHazardProvider{ds: t, computeStart: c}
+	return &adcircCSVHazardProvider{ds: t, computeStart: c}
 }
-func (csv *csvHazardProvider) SelectFrequency(zidx int) {
+func (csv *adcircCSVHazardProvider) SelectFrequency(zidx int) {
 	csv.ds.SetFrequency(zidx)
 }
-func (csv *csvHazardProvider) Hazard(l geography.Location) (hazards.HazardEvent, error) {
+
+func (csv *adcircCSVHazardProvider) Hazard(l geography.Location) (hazards.HazardEvent, error) {
 	h := hazards.CoastalEvent{}
 	csv.queryCount++
 	//check if point is in the hull polygon.

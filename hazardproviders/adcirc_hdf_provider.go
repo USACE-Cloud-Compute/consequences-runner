@@ -101,8 +101,8 @@ type AcPoint struct {
 }
 
 // /////////////////////////////////////////////////////////
-// ///////////////HDF ADCERC HAZARD PROVIDER///////////////
-type HdfAdcercHazardProvider struct {
+// ///////////////HDF ADCIRC HAZARD PROVIDER///////////////
+type HdfAdcircHazardProvider struct {
 	ds                       *geometry.Tin
 	queryCount               int64
 	actualComputedStructures int64
@@ -111,7 +111,7 @@ type HdfAdcercHazardProvider struct {
 	selectedFrequency        int
 }
 
-func NewHdfAdcercHazardProvider(grdfile string, probSwlFile string, probHmoFile string, dataset string) (*HdfAdcercHazardProvider, error) {
+func NewHdfAdcircHazardProvider(grdfile string, probSwlFile string, probHmoFile string, dataset string) (*HdfAdcircHazardProvider, error) {
 	triangles, err := ReadTriangles(grdfile)
 	if err != nil {
 		return nil, err
@@ -146,7 +146,7 @@ func NewHdfAdcercHazardProvider(grdfile string, probSwlFile string, probHmoFile 
 	if err != nil {
 		return nil, err
 	}
-	hzp := HdfAdcercHazardBuilder{
+	hzp := HdfAdcircHazardBuilder{
 		triangles:    triangles,
 		nodes:        nodes,
 		probabilites: aef,
@@ -160,7 +160,7 @@ func NewHdfAdcercHazardProvider(grdfile string, probSwlFile string, probHmoFile 
 	err = hzp.assignProbsToNodes()
 	c := time.Now()
 	tin := hzp.buildTin()
-	return &HdfAdcercHazardProvider{ds: tin, computeStart: c, frequencies: aef}, nil
+	return &HdfAdcircHazardProvider{ds: tin, computeStart: c, frequencies: aef}, nil
 }
 
 func ReadNodeTable(hdfFilePath string) (map[int32]int32, error) {
@@ -184,10 +184,10 @@ func ReadNodeTable(hdfFilePath string) (map[int32]int32, error) {
 	}
 	return nodeIdxs, nil
 }
-func (hazP *HdfAdcercHazardProvider) SelectFrequency(index int) {
+func (hazP *HdfAdcircHazardProvider) SelectFrequency(index int) {
 	hazP.selectedFrequency = index
 }
-func (hazP *HdfAdcercHazardProvider) ProvideHazards(l geography.Location) ([]hazards.HazardEvent, error) {
+func (hazP *HdfAdcircHazardProvider) ProvideHazards(l geography.Location) ([]hazards.HazardEvent, error) {
 	hazP.queryCount++
 	//check if point is in the hull polygon.
 	p := geometry.Point{X: l.X, Y: l.Y}
@@ -208,7 +208,7 @@ func (hazP *HdfAdcercHazardProvider) ProvideHazards(l geography.Location) ([]haz
 	notIn := hazardproviders.NoHazardFoundError{Input: "Point Not In Polygon"}
 	return nil, notIn
 }
-func (hazP *HdfAdcercHazardProvider) ProvideHazard(l geography.Location) (hazards.HazardEvent, error) {
+func (hazP *HdfAdcircHazardProvider) ProvideHazard(l geography.Location) (hazards.HazardEvent, error) {
 	hazP.queryCount++
 	//check if point is in the hull polygon.
 	p := geometry.Point{X: l.X, Y: l.Y}
@@ -230,7 +230,7 @@ func (hazP *HdfAdcercHazardProvider) ProvideHazard(l geography.Location) (hazard
 	notIn := hazardproviders.NoHazardFoundError{Input: "Point Not In Polygon"}
 	return nil, notIn
 }
-func (hazP *HdfAdcercHazardProvider) ProvideHazardBoundary() (geography.BBox, error) {
+func (hazP *HdfAdcircHazardProvider) ProvideHazardBoundary() (geography.BBox, error) {
 	bbox := make([]float64, 4)
 	bbox[0] = hazP.ds.MinX //upper left x
 	bbox[1] = hazP.ds.MaxY //upper left y
@@ -239,11 +239,11 @@ func (hazP *HdfAdcercHazardProvider) ProvideHazardBoundary() (geography.BBox, er
 	return geography.BBox{Bbox: bbox}, nil
 }
 
-func (hazP *HdfAdcercHazardProvider) Frequencies() []float64 {
+func (hazP *HdfAdcircHazardProvider) Frequencies() []float64 {
 	return hazP.frequencies
 }
 
-func (hazP *HdfAdcercHazardProvider) Close() {
+func (hazP *HdfAdcircHazardProvider) Close() {
 	n := time.Since(hazP.computeStart)
 	fmt.Print("Compute Complete")
 	fmt.Print("Compute Time was: ")
@@ -253,10 +253,10 @@ func (hazP *HdfAdcercHazardProvider) Close() {
 }
 
 ///////////////////////////////////////////////////////////
-/////////////////HDF ADCERC HAZARD Builder/////////////////
+/////////////////HDF ADCIRC HAZARD Builder/////////////////
 
 // @TODO need to make sure we close all datasets
-type HdfAdcercHazardBuilder struct {
+type HdfAdcircHazardBuilder struct {
 	triangles    map[int32]AcTriangle
 	nodes        map[int32]AcNode
 	probabilites []float64
@@ -268,7 +268,7 @@ type HdfAdcercHazardBuilder struct {
 	stdevSwl     *HdfDataset
 }
 
-func (hzp *HdfAdcercHazardBuilder) buildTin() *geometry.Tin {
+func (hzp *HdfAdcircHazardBuilder) buildTin() *geometry.Tin {
 	var minx, miny, maxx, maxy float64
 	minx = 180
 	miny = 180
@@ -324,7 +324,7 @@ func (hzp *HdfAdcercHazardBuilder) buildTin() *geometry.Tin {
 
 }
 
-func (hzp *HdfAdcercHazardBuilder) assignProbsToNodes() error {
+func (hzp *HdfAdcircHazardBuilder) assignProbsToNodes() error {
 	swlRow := []float64{}
 	hmoRow := []float64{}
 	for _, node := range hzp.nodes {
