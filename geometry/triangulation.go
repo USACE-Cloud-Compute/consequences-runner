@@ -73,6 +73,7 @@ func (t *Tin) ComputeValue(x float64, y float64) (float64, error) {
 	t.Tree.Search([2]float64{x, y}, [2]float64{x, y},
 		func(min, max [2]float64, value interface{}) bool {
 			tri, ok := value.(TriangleZZ) //(Triangle)
+
 			if ok {
 				v, _, err = tri.GetValue(x, y, t.zidx) //v, err = tri.GetValue(x, y, t.zidx)
 				if err == nil {

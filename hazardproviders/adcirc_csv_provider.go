@@ -80,7 +80,7 @@ func (csv *adcircCSVHazardProvider) Hazard(l geography.Location) (hazards.Hazard
 }
 
 // implement
-func (csv *csvHazardProvider) ProvideHazards(l geography.Location) ([]hazards.HazardEvent, error) {
+func (csv *adcircCSVHazardProvider) ProvideHazards(l geography.Location) ([]hazards.HazardEvent, error) {
 	csv.queryCount++
 	//check if point is in the hull polygon.
 	p := geometry.Point{X: l.X, Y: l.Y}
@@ -103,7 +103,7 @@ func (csv *csvHazardProvider) ProvideHazards(l geography.Location) ([]hazards.Ha
 }
 
 // implement
-func (csv csvHazardProvider) HazardBoundary() (geography.BBox, error) {
+func (csv adcircCSVHazardProvider) HazardBoundary() (geography.BBox, error) {
 	bbox := make([]float64, 4)
 	bbox[0] = csv.ds.MinX //upper left x
 	bbox[1] = csv.ds.MaxY //upper left y
@@ -113,7 +113,7 @@ func (csv csvHazardProvider) HazardBoundary() (geography.BBox, error) {
 }
 
 // implement
-func (csv *csvHazardProvider) Close() {
+func (csv *adcircCSVHazardProvider) Close() {
 	//do nothing?
 	n := time.Since(csv.computeStart)
 	fmt.Print("Compute Complete")

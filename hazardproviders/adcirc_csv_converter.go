@@ -8,9 +8,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/HydrologicEngineeringCenter/go-coastal/geometry"
 	"github.com/furstenheim/ConcaveHull"
 	"github.com/tidwall/rtree"
+	"github.com/usace-cloud-compute/consequences-runner/geometry"
 )
 
 type CoastalFrequency int
@@ -63,10 +63,11 @@ func (c CoastalFrequency) String() string {
 
 func process_TIN(fp string) (*geometry.Tin, error) {
 	f, err := os.Open(fp)
-	defer f.Close()
 	if err != nil {
 		panic(err)
 	}
+	defer f.Close()
+
 	scanner := bufio.NewScanner(f)
 	nodata := 0.0
 	xidx := 0

@@ -4,21 +4,33 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+
+	"github.com/USACE/go-consequences/geography"
 )
 
 func TestOpenCSV_WithCSVProvider(t *testing.T) {
 	// hp := Init("/workspaces/go-coastal/data/CHS_SACS_FL_Blending_PCHA_depth_SLC0_BE_v2020315.csv")
-	hp := InitAdcercCSV("/mnt/drunner/data/SACS/FL/CHS-SACS_FL_PCHA_Nodal_Inundation_Depth_Blended_SLC0_BE_vOct2023.csv")
+	hp := InitAdcircCSV("/mnt/drunner/data/test-data.csv")
+	loc := geography.Location{
+		X: -87.51,
+		Y: 30.51,
+	}
+	haz, err := hp.Hazard(loc)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(haz)
 	hp.Close()
 }
 func Test_triangulation(t *testing.T) {
-	process_TIN("/workspaces/go-coastal/data/CHS_SACS_FL_Blending_PCHA_depth_SLC0_BE_v2020315_a.csv")
+	process_TIN("/mnt/drunner/data/SACS/AL/CHS-SACS_AL_PCHA_Nodal_Inundation_Depth_SLC0_BE_vOct2023.csv")
+	// process_TIN("/workspaces/go-coastal/data/CHS_SACS_FL_Blending_PCHA_depth_SLC0_BE_v2020315_a.csv")
 }
 
 func Test_ConcaveHull(t *testing.T) {
 	f := OneHundred
 	fp := "/workspaces/go-coastal/data/CHS_SACS_FL_Blending_PCHA_depth_SLC0_BE_v2020315.csv"
-	hp := InitAdcercCSV(fp)
+	hp := InitAdcircCSV(fp)
 	hp.SelectFrequency(int(f) - int(Two)) //offset to zero based index
 	s := strings.TrimRight(fp, ".csv")
 	hp.ds.Hull.ToGeoJson(s + "_concavehull.json")
