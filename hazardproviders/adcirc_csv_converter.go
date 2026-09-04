@@ -75,7 +75,10 @@ func process_TIN(fp string) (*geometry.Tin, error) {
 	firstrow := true
 	//we dont know how big the file will be, so we have to make a guess.
 	dimSize := 0
-	points := make([]geometry.PointZ, dimSize)
+	// We are creating a []PointZ here but later functions seem to expect PointZZ
+	// rather later functions expect TriangleZZ, which requires these to be PointZZ
+	// do we convert later? if so where?
+	points := make([]geometry.PointZZ, dimSize)
 	count := 0
 	ps := make([]float64, dimSize)
 	for scanner.Scan() {
@@ -126,7 +129,9 @@ func process_TIN(fp string) (*geometry.Tin, error) {
 			zvals[i] = zval
 		}
 		p := geometry.Point{X: xval, Y: yval}
-		points = append(points, geometry.PointZ{Point: &p, Z: zvals})
+
+		points = append(points, geometry.PointZZ{Point: &p, ZSwl: zvals, ZElev: terrain, ZHm0: make([]float64, len(zvals))})
+		// points = append(points, geometry.PointZ{Point: &p, Z: zvals})
 		count++
 	}
 	fmt.Printf("read %v lines from %v\n", count, fp)
@@ -432,8 +437,14 @@ func processGrdAndCSV(grdfp string, swlfp string) (*geometry.Tin, error) {
 	scanner.Scan() //count of triangles and points
 	row2 := scanner.Text()
 	vals := strings.Split(row2, "  ") //not sure this will always work correctly
-	dimNSize, _ := strconv.ParseInt(vals[1], 10, 64)
-	dimTSize, _ := strconv.ParseInt(vals[0], 10, 64)
+	dimNSize, errN := strconv.ParseInt(vals[1], 10, 64)
+	if errN != nil {
+		panic(errN)
+	}
+	dimTSize, errT := strconv.ParseInt(vals[0], 10, 64)
+	if errT != nil {
+		panic(errT)
+	}
 	nodes := make(map[int32]geometry.PointZZ)
 	nodeLookup := make(map[string]int32)
 	triangles := make(map[int64]geometry.TriangleZZ)
@@ -455,6 +466,19 @@ func processGrdAndCSV(grdfp string, swlfp string) (*geometry.Tin, error) {
 			}
 			pointCounter += 1
 			line := strings.Split(scanner.Text(), " ") //is there a way to group spaces?
+
+			// START TEST testing if there is a way to group spaces
+			line_alt := strings.Fields(scanner.Text())
+			if len(line_alt) == 4 {
+				fmt.Println("It probably worked")
+			}
+			node_id := line_alt[0]
+			node_x := line_alt[1]
+			node_y := line_alt[2]
+			node_z := line_alt[3]
+			fmt.Printf("nodeid: %s, x: %s, y: %s, z: %s\n", node_id, node_x, node_y, node_z)
+			// END TEST
+
 			//nodeid|X|Y|Z
 			var nodeid int32
 			nodeid = 0
