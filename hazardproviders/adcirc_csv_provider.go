@@ -28,7 +28,7 @@ func InitAdcircCSV(fp string) *adcircCSVHazardProvider {
 	c := time.Now()
 	return &adcircCSVHazardProvider{ds: t, computeStart: c}
 }
-func InitWithGrd(fp string, grdfp string) *adcircCSVHazardProvider {
+func InitAdcircCSVWithGrd(fp string, grdfp string) *adcircCSVHazardProvider {
 	// Open the file
 	t, err := processGrdAndCSV(grdfp, fp)
 	if err != nil {
@@ -52,7 +52,35 @@ func (csv *adcircCSVHazardProvider) SelectFrequency(zidx int) {
 	csv.ds.SetFrequency(zidx)
 }
 
-func (csv *adcircCSVHazardProvider) Hazard(l geography.Location) (hazards.HazardEvent, error) {
+func (csv adcircCSVHazardProvider) Hazard(l geography.Location) (hazards.HazardEvent, error) {
+	h := hazards.MultiFrequencyCoastalEvent{}
+
+	csv.queryCount++
+	//check if point is in the hull polygon.
+	p := geometry.Point{X: l.X, Y: l.Y}
+
+	if csv.ds.Hull.Contains(p) {
+		v, err := csv.ds.ComputeValues(l.X, l.Y)
+		if err != nil {
+			return nil, err
+		}
+		v2 := make([]hazards.CoastalEvent, len(v))
+		for i, vi := range v {
+			vc := vi.(hazards.CoastalEvent) // do we need to check success here? vc, ok := ...?
+			v2[i] = vc
+		}
+		csv.actualComputedStructures++
+		freqs := []float64{0.5, 0.2, 0.1, 0.05, 0.02, 0.01, 0.005, 0.002, 0.001, 0.0002, 0.0001}
+		h.Frequencies = freqs
+		h.Events = v2
+
+		return h, nil
+	}
+	notIn := hazardproviders.NoHazardFoundError{Input: "Point Not In Polygon"}
+	return h, notIn
+}
+
+func (csv *adcircCSVHazardProvider) Hazard_old(l geography.Location) (hazards.HazardEvent, error) {
 	h := hazards.CoastalEvent{}
 	csv.queryCount++
 	//check if point is in the hull polygon.

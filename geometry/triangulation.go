@@ -20,7 +20,7 @@ type Tin struct {
 }
 
 // Triangulate returns a Delaunay triangulation of the provided points.
-func CreateTin(points []PointZ, nodata float64, hull Polygon) (*Tin, error) {
+func CreateTin(points []PointZZ, nodata float64, hull Polygon) (*Tin, error) {
 	t := newTriangulator(points)
 	var minx, miny, maxx, maxy float64
 	minx = 180
@@ -39,9 +39,9 @@ func CreateTin(points []PointZ, nodata float64, hull Polygon) (*Tin, error) {
 		p0 := &points[ts[i+0]]
 		p1 := &points[ts[i+1]]
 		p2 := &points[ts[i+2]]
-		lenz := len(p0.Z) - 1
-		if p0.Z[lenz] != nodata || p1.Z[lenz] != nodata || p2.Z[lenz] != nodata {
-			t := CreateTriangle(p0, p1, p2)
+		lenz := len(p0.ZSwl) - 1
+		if p0.ZSwl[lenz] != nodata || p1.ZSwl[lenz] != nodata || p2.ZSwl[lenz] != nodata {
+			t := CreateTriangleZZ(p0, p1, p2)
 			e := t.Extent()
 			if maxx < e.UpperRight.X {
 				maxx = e.UpperRight.X
