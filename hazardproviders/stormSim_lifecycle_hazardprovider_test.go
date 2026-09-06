@@ -28,7 +28,7 @@ func Test_ParseEventsFile(t *testing.T) {
 }
 
 func Test_ParseResponsesFile(t *testing.T) {
-	responsesFP := "/workspaces/consequences-runner/data/coastal/stage_responses_loc_DE001_lc_0.csv"
+	responsesFP := "/workspaces/consequences-runner/data/coastal/stage_responses_loc_DE001_lc_0.parquet"
 
 	arrivals_expected := []time.Time{
 		time.Date(2033, time.Month(8), 26, 5, 50, 29, 0, time.UTC),
@@ -62,7 +62,7 @@ func Test_ParseResponsesFile(t *testing.T) {
 		2.0, 1.0, 2.0, 1.0,
 		2.0, 4.0, 4.0, 1.0, 4.0,
 	}
-	add, err := parseResponsesFile(responsesFP, "", "CSV", len(arrivals_expected), 0)
+	add, err := parseResponsesFile(responsesFP, "", "Parquet", len(arrivals_expected), 0)
 	if err != nil {
 		panic(err)
 	}
@@ -86,3 +86,18 @@ func Test_ParseResponsesFile(t *testing.T) {
 	}
 
 }
+
+// func Test_InitStormSim( t *testing.T) {
+// 	ssi := StormSimInfo{
+// 		EventsFP:
+// 		EventsDriver:
+// 		EventsLayername:
+// 		ResponsesFP:
+// 		ResponsesDriver:
+// 		ResponsesLayername:
+// 		ReachesFP:
+// 		ReachesDriver:
+// 		ReachesLayername:
+// 		Lifecycle:
+// 	}
+// }

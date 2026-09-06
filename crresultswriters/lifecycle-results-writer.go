@@ -2,10 +2,12 @@ package crresultswriters
 
 import (
 	"github.com/USACE/go-consequences/consequences"
+	"github.com/USACE/go-consequences/hazards"
 	"github.com/USACE/go-consequences/resultswriters"
 )
 
 type lifecycleResultsWriter struct {
+	// Will this fail if both writers are using the same geopackage? <-- YES
 	SummaryWriter consequences.ResultsWriter
 	EventsWriter  consequences.ResultsWriter
 }
@@ -45,8 +47,14 @@ func (lrw *lifecycleResultsWriter) Write(r consequences.Result) {
 	eventResults := e.(consequences.Result)
 	for _, ei := range eventResults.Result {
 		er := ei.(consequences.Result)
-		hi := append([]string{"fd_id"}, er.Headers...)
-		ri := append([]interface{}{fd_id}, er.Result...)
+		he, err := er.Fetch("hazard")
+		if err != nil {
+			panic(err)
+		}
+		stormevent_id := he.(hazards.HazardEvent).Qualitative()
+
+		hi := append([]string{"fd_id", "stormevent_id"}, er.Headers...)
+		ri := append([]interface{}{fd_id, stormevent_id}, er.Result...)
 		lrw.EventsWriter.Write(consequences.Result{Headers: hi, Result: ri})
 	}
 
@@ -63,7 +71,6 @@ func (lrw *lifecycleResultsWriter) Write(r consequences.Result) {
 }
 
 func (lrw *lifecycleResultsWriter) Close() {
-	// Will this fail if both writers are using the same geopackage?
 	lrw.SummaryWriter.Close()
 	lrw.EventsWriter.Close()
 }
