@@ -436,7 +436,8 @@ func processGrdAndCSV(grdfp string, swlfp string) (*geometry.Tin, error) {
 	scanner.Scan() // burn the header
 	scanner.Scan() //count of triangles and points
 	row2 := scanner.Text()
-	vals := strings.Split(row2, "  ") //not sure this will always work correctly
+	// vals := strings.Split(row2, "  ") //not sure this will always work correctly
+	vals := strings.Fields(row2) // instead of using Split(), use Fields to split on white space
 	dimNSize, errN := strconv.ParseInt(vals[1], 10, 64)
 	if errN != nil {
 		panic(errN)
@@ -465,19 +466,6 @@ func processGrdAndCSV(grdfp string, swlfp string) (*geometry.Tin, error) {
 				fmt.Println("reading nodes")
 			}
 			pointCounter += 1
-			line := strings.Split(scanner.Text(), " ") //is there a way to group spaces?
-
-			// START TEST testing if there is a way to group spaces
-			line_alt := strings.Fields(scanner.Text())
-			if len(line_alt) == 4 {
-				fmt.Println("It probably worked")
-			}
-			node_id := line_alt[0]
-			node_x := line_alt[1]
-			node_y := line_alt[2]
-			node_z := line_alt[3]
-			fmt.Printf("nodeid: %s, x: %s, y: %s, z: %s\n", node_id, node_x, node_y, node_z)
-			// END TEST
 
 			//nodeid|X|Y|Z
 			var nodeid int32
@@ -485,26 +473,16 @@ func processGrdAndCSV(grdfp string, swlfp string) (*geometry.Tin, error) {
 			xval := 0.0
 			yval := 0.0
 			zval := 0.0 //terrain
-			valcount := 0
-			for _, v := range line {
-				if v != "" {
-					valcount += 1
-					switch valcount {
-					case 1:
-						tmpInt, err := strconv.ParseInt(v, 10, 32)
-						if err != nil {
-							panic(err)
-						}
-						nodeid = int32(tmpInt)
-					case 2:
-						xval, _ = strconv.ParseFloat(v, 64)
-					case 3:
-						yval, _ = strconv.ParseFloat(v, 64)
-					case 4:
-						zval, _ = strconv.ParseFloat(v, 64) //terrain
-					}
-				}
+			line := strings.Fields(scanner.Text())
+			tmpInt, err := strconv.ParseInt(line[0], 10, 32)
+			if err != nil {
+				panic(err)
 			}
+			nodeid = int32(tmpInt)
+			xval, _ = strconv.ParseFloat(line[1], 64)
+			yval, _ = strconv.ParseFloat(line[2], 64)
+			zval, _ = strconv.ParseFloat(line[3], 64)
+
 			identifier := fmt.Sprintf("%f,%f", xval, yval)
 			nodeLookup[identifier] = nodeid
 			nodes[nodeid] = geometry.PointZZ{Point: &geometry.Point{X: xval, Y: yval}, ZElev: zval}
@@ -551,7 +529,7 @@ func processGrdAndCSV(grdfp string, swlfp string) (*geometry.Tin, error) {
 					zswlvals := make([]float64, len(frequencies))
 					zhmovals := make([]float64, len(frequencies))
 
-					for i, _ := range frequencies {
+					for i := range frequencies {
 						zhmovals[i] = nodata
 						zswlval, err := strconv.ParseFloat(swllines[i+3], 64) //need to read all values and load into an array now.
 						if err != nil {
