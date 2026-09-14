@@ -6,14 +6,14 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/HydrologicEngineeringCenter/go-coastal/geometry"
-	// "github.com/HydrologicEngineeringCenter/consequences-runner/geometry"
+	// "github.com/HydrologicEngineeringCenter/go-coastal/geometry"
 	"github.com/HydrologicEngineeringCenter/go-statistics/statistics"
 	"github.com/USACE/go-consequences/geography"
 	"github.com/USACE/go-consequences/hazardproviders"
 	"github.com/USACE/go-consequences/hazards"
 	"github.com/furstenheim/ConcaveHull"
 	"github.com/tidwall/rtree"
+	"github.com/usace-cloud-compute/consequences-runner/geometry"
 )
 
 /*
@@ -28,15 +28,6 @@ var CHL_HDFGRID_NI string = "Nodes"
 var CHL_HDFGRID_NIDX string = "ADCIRC Node IDs"
 var CHL_HDFGRID_AEF string = "AEF Values"
 var NODATA float64 = -9999999.0
-
-// type HazardProvider interface {
-// 	ProvideHazardBoundary() (geography.BBox, error)
-// 	//NextElement() []float64
-// 	SelectFrequency(index int)
-// 	ProvideHazard(location geography.Location) (hazards.HazardEvent, error)
-// 	ProvideHazards(location geography.Location) ([]hazards.HazardEvent, error)
-// 	Close()
-// }
 
 type AcNode struct {
 	Point AcPoint
@@ -111,7 +102,7 @@ type HdfAdcircHazardProvider struct {
 	selectedFrequency        int
 }
 
-func NewHdfAdcircHazardProvider(grdfile string, probSwlFile string, probHmoFile string, dataset string) (*HdfAdcircHazardProvider, error) {
+func InitAdcircHDF(grdfile string, probSwlFile string, probHmoFile string, dataset string) (*HdfAdcircHazardProvider, error) {
 	triangles, err := ReadTriangles(grdfile)
 	if err != nil {
 		return nil, err
@@ -184,53 +175,36 @@ func ReadNodeTable(hdfFilePath string) (map[int32]int32, error) {
 	}
 	return nodeIdxs, nil
 }
-func (hazP *HdfAdcircHazardProvider) SelectFrequency(index int) {
-	hazP.selectedFrequency = index
-}
-func (hazP *HdfAdcircHazardProvider) ProvideHazards(l geography.Location) ([]hazards.HazardEvent, error) {
-	hazP.queryCount++
-	//check if point is in the hull polygon.
-	p := geometry.Point{X: l.X, Y: l.Y}
-	if hazP.queryCount%100000 == 0 {
-		n := time.Since(hazP.computeStart)
-		fmt.Print("Compute Time: ")
-		fmt.Println(n)
-		fmt.Println(fmt.Sprintf("Processed %v structures, with %v valid depths", hazP.queryCount, hazP.actualComputedStructures))
-	}
-	if hazP.ds.Hull.Contains(p) {
-		v, err := hazP.ds.ComputeValues(l.X, l.Y)
-		if err != nil {
-			return nil, err
-		}
-		hazP.actualComputedStructures++
-		return v, nil
-	}
-	notIn := hazardproviders.NoHazardFoundError{Input: "Point Not In Polygon"}
-	return nil, notIn
-}
-func (hazP *HdfAdcircHazardProvider) ProvideHazard(l geography.Location) (hazards.HazardEvent, error) {
-	hazP.queryCount++
-	//check if point is in the hull polygon.
-	p := geometry.Point{X: l.X, Y: l.Y}
-	if hazP.queryCount%100000 == 0 {
-		n := time.Since(hazP.computeStart)
-		fmt.Print("Compute Time: ")
-		fmt.Println(n)
-		fmt.Println(fmt.Sprintf("Processed %v structures, with %v valid depths", hazP.queryCount, hazP.actualComputedStructures))
-	}
-	if hazP.ds.Hull.Contains(p) {
-		v, err := hazP.ds.ComputeValues(l.X, l.Y)
-		if err != nil {
-			return nil, err
-		}
-		hazP.actualComputedStructures++
 
-		return v[hazP.selectedFrequency], nil
+func (hazP *HdfAdcircHazardProvider) Hazard(l geography.Location) (hazards.HazardEvent, error) {
+	h := hazards.MultiFrequencyCoastalEvent{}
+	hazP.queryCount++
+
+	//check if point is in the hull polygon.
+	p := geometry.Point{X: l.X, Y: l.Y}
+
+	if hazP.ds.Hull.Contains(p) {
+		v, err := hazP.ds.ComputeValues(l.X, l.Y)
+		if err != nil {
+			return nil, err
+		}
+		v2 := make([]hazards.CoastalEvent, len(v))
+		for i, vi := range v {
+			vc := vi.(hazards.CoastalEvent) // do we need to check success here? vc, ok := ...?
+			v2[i] = vc
+		}
+		hazP.actualComputedStructures++
+		// should this be a global variable?
+		freqs := []float64{0.5, 0.2, 0.1, 0.05, 0.02, 0.01, 0.005, 0.002, 0.001, 0.0002, 0.0001}
+		h.Frequencies = freqs
+		h.Events = v2
+
+		return h, nil
 	}
 	notIn := hazardproviders.NoHazardFoundError{Input: "Point Not In Polygon"}
-	return nil, notIn
+	return h, notIn
 }
-func (hazP *HdfAdcircHazardProvider) ProvideHazardBoundary() (geography.BBox, error) {
+func (hazP *HdfAdcircHazardProvider) HazardBoundary() (geography.BBox, error) {
 	bbox := make([]float64, 4)
 	bbox[0] = hazP.ds.MinX //upper left x
 	bbox[1] = hazP.ds.MaxY //upper left y
@@ -244,6 +218,7 @@ func (hazP *HdfAdcircHazardProvider) Frequencies() []float64 {
 }
 
 func (hazP *HdfAdcircHazardProvider) Close() {
+	// do nothing?
 	n := time.Since(hazP.computeStart)
 	fmt.Print("Compute Complete")
 	fmt.Print("Compute Time was: ")
