@@ -75,9 +75,7 @@ func process_TIN(fp string) (*geometry.Tin, error) {
 	firstrow := true
 	//we dont know how big the file will be, so we have to make a guess.
 	dimSize := 0
-	// We are creating a []PointZ here but later functions seem to expect PointZZ
-	// rather later functions expect TriangleZZ, which requires these to be PointZZ
-	// do we convert later? if so where?
+
 	points := make([]geometry.PointZZ, dimSize)
 	count := 0
 	ps := make([]float64, dimSize)
