@@ -18,7 +18,6 @@ import (
 	"github.com/USACE/go-consequences/structures"
 	"github.com/usace-cloud-compute/cc-go-sdk"
 	"github.com/usace-cloud-compute/consequences-runner/crresultswriters"
-	lrw "github.com/usace-cloud-compute/consequences-runner/crresultswriters"
 	lhp "github.com/usace-cloud-compute/consequences-runner/hazardproviders"
 	"github.com/usace-cloud-compute/consequences-runner/structureproviders"
 )
@@ -47,6 +46,9 @@ const (
 	stormSimReachesDriver             string = "ss-reaches-driver"
 	stormSimReachesLayer              string = "ss-reaches-layer"
 	stormSimLifecycle                 string = "ss-lifecycle"
+	adcircGrdPath                     string = "adcirc-grd"
+	adcircSwlPath                     string = "adcirc-swl"
+	adcircHm0Path                     string = "adcirc-hm0"
 	outputDatasourceName              string = "Damages" //plugin output datasource name required
 	localData                         string = "/app/data"
 	pluginName                        string = "consequences"
@@ -67,6 +69,7 @@ const (
 	computeFrequencyActionName        string = "compute-frequency"
 	computeCoastalEventActionName     string = "compute-coastal-event"
 	computeCoastalLifecycleActionName string = "compute-coastal-lifecycle"
+	computeCoastalFrequencyActionName string = "compute-coastal-frequency"
 )
 
 func init() {
@@ -74,6 +77,7 @@ func init() {
 	cc.ActionRegistry.RegisterAction(computeFrequencyActionName, &ComputeFrequencyAction{})
 	cc.ActionRegistry.RegisterAction(computeCoastalEventActionName, &ComputeCoastalEventAction{})
 	cc.ActionRegistry.RegisterAction(computeCoastalLifecycleActionName, &ComputeCoastalLifecycleAction{})
+	cc.ActionRegistry.RegisterAction(computeCoastalFrequencyActionName, &ComputeCoastalFrequencyAction{})
 }
 
 type ComputeEventAction struct {
@@ -86,6 +90,9 @@ type ComputeCoastalEventAction struct {
 	cc.ActionRunnerBase
 }
 type ComputeCoastalLifecycleAction struct {
+	cc.ActionRunnerBase
+}
+type ComputeCoastalFrequencyAction struct {
 	cc.ActionRunnerBase
 }
 
@@ -510,6 +517,108 @@ func (ar *ComputeCoastalLifecycleAction) Run() error {
 	return nil
 
 }
+
+func (ar *ComputeCoastalFrequencyAction) Run() error {
+	a := ar.Action
+	// get all relevant parameters
+	tablename := a.Attributes.GetStringOrFail(tablenameKey)
+
+	grdFile := a.Attributes.GetStringOrFail(adcircGrdPath)
+	swlFile := a.Attributes.GetStringOrFail(adcircSwlPath)
+	hm0File := a.Attributes.GetStringOrFail(adcircHm0Path)
+
+	inventoryPath := a.Attributes.GetStringOrFail(inventoryPathKey) //expected this is local - needs to agree with the payload input datasource name
+	inventoryDriver := a.Attributes.GetStringOrFail(inventoryDriverKey)
+
+	outputDriver := a.Attributes.GetStringOrFail(outputDriverKey)
+	outputFileName := a.Attributes.GetStringOrFail(outputFileNameKey) //expected this is local - needs to agree with the payload output datasource name
+	//useKnowledgeUncertainty, err := strconv.ParseBool(a.Parameters.GetStringOrFail(useKnowledgeUncertaintyKey))
+	damageFunctionPath := a.Attributes.GetStringOrFail(damageFunctionPathKey) //expected this is local - needs to agree with the payload input datasource name
+
+	grdfpParts := strings.Split(grdFile, ".")
+	grdExt := grdfpParts[len(grdfpParts)-1]
+
+	var abstractHP hazardproviders.HazardProvider
+	defer abstractHP.Close()
+	if grdExt == "csv" {
+		hp, err := lhp.InitAdcircCSVWithGrd(swlFile, grdFile)
+		if err != nil {
+			panic(err)
+		}
+		// do we need to defer hp.Close() or is that covered by the above abstractHp.Close()?
+		abstractHP = hp
+	} else if grdExt == "h5" {
+		hp, err := lhp.InitAdcircHDF(grdFile, swlFile, hm0File, "Best Estimate AEF")
+		if err != nil {
+			panic(err)
+		}
+		abstractHP = hp
+	}
+
+	var abstractSP consequences.StreamProvider
+	// var sr string
+	if inventoryDriver == "MILLIMAN" {
+		sp, err := structureproviders.InitMillimanStructureProviderwithOcctypePath(inventoryPath, damageFunctionPath)
+		sp.SetDeterministic(true)
+		if err != nil {
+			return err
+		}
+		fmt.Sprintln(sp.FilePath)
+		// sr = sp.SpatialReference()
+		abstractSP = sp
+	} else {
+		sp, err := structureprovider.InitStructureProviderwithOcctypePath(inventoryPath, tablename, inventoryDriver, damageFunctionPath)
+		sp.SetDeterministic(true)
+		if err != nil {
+			return err
+		}
+		fmt.Sprintln(sp.FilePath)
+		// sr = sp.SpatialReference()
+		abstractSP = sp
+	}
+
+	//initalize a results writer
+	//TODO: add more key-value pairs to payload for summary and events results writer details
+	resultsFile := fmt.Sprintf("EAD_consequences_%s", outputFileName)
+
+	rw, err := resultswriters.InitSpatialResultsWriter(resultsFile, "results", outputDriver)
+
+	if err != nil {
+		panic(err)
+	}
+	defer rw.Close()
+
+	//compute results
+	//get boundingbox
+	fmt.Println("Getting bbox")
+	bbox, err := abstractHP.HazardBoundary()
+	if err != nil {
+		log.Panicf("Unable to get the bounding box: %s", err)
+	}
+	fmt.Println(bbox.ToString())
+	abstractSP.ByBbox(bbox, func(f consequences.Receptor) {
+		//ProvideHazard works off of a geography.Location
+		d, err2 := abstractHP.Hazard(geography.Location{X: f.Location().X, Y: f.Location().Y})
+
+		//compute damages based on hazard being able to provide depth
+		if err2 == nil {
+			r, err3 := f.Compute(d)
+			r.Headers = append(r.Headers, "multifrequencyhazard")
+			bytes, err := json.Marshal(d)
+			s := ""
+			if err == nil {
+				s = string(bytes)
+			}
+			r.Result = append(r.Result, s)
+			if err3 == nil {
+				rw.Write(r)
+			}
+		}
+	})
+	return nil
+
+}
+
 func ComputeMultiFrequency(hps []hazardproviders.HazardProvider, freqs []float64, sp consequences.StreamProvider, w consequences.ResultsWriter) {
 	fmt.Printf("Computing %v frequencies\n", len(freqs))
 	//ASSUMPTION hazard providers and frequencies are in the same order

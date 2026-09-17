@@ -28,14 +28,15 @@ func InitAdcircCSV(fp string) *adcircCSVHazardProvider {
 	c := time.Now()
 	return &adcircCSVHazardProvider{ds: t, computeStart: c}
 }
-func InitAdcircCSVWithGrd(fp string, grdfp string) *adcircCSVHazardProvider {
+func InitAdcircCSVWithGrd(fp string, grdfp string) (*adcircCSVHazardProvider, error) {
 	// Open the file
+	var ret = &adcircCSVHazardProvider{}
 	t, err := processGrdAndCSV(grdfp, fp)
 	if err != nil {
-		panic(err)
+		return ret, err
 	}
 	c := time.Now()
-	return &adcircCSVHazardProvider{ds: t, computeStart: c}
+	return &adcircCSVHazardProvider{ds: t, computeStart: c}, nil
 }
 func InitWithGrdAndWave(grdfp string, swlfp string, hmofp string) *adcircCSVHazardProvider {
 	// Open the file
