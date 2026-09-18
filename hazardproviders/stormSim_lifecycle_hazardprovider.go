@@ -303,10 +303,28 @@ func (c stormsimLifecycleMultiHazardProvider) Close() {
 	// what goes here after switching to using gdal?
 }
 
+// depthsAboveGround converts the reach's water-surface elevations into depths
+// at one structure.
+func depthsAboveGround(depths []float64, groundElevation float64) []float64 {
+	adjusted := make([]float64, len(depths))
+	for i, d := range depths {
+		adjusted[i] = d - groundElevation
+	}
+	return adjusted
+}
+
+// Hazard cannot be answered from a location alone: this provider holds
+// elevations, and a depth needs the structure's ground.
 func (c stormsimLifecycleMultiHazardProvider) Hazard(l geography.Location) (hazards.HazardEvent, error) {
+	return nil, errors.New("stormsim lifecycle provider reports elevations; use HazardAtGround")
+}
+
+// HazardAtGround reports the reach's storm series as depths above one
+// structure's ground surface.
+func (c stormsimLifecycleMultiHazardProvider) HazardAtGround(l geography.Location, groundElevation float64) (hazards.HazardEvent, error) {
 	var hm hazards.ArrivalDepthandDurationEventMulti
 
-	for i, d := range c.depths {
+	for i, d := range depthsAboveGround(c.depths, groundElevation) {
 		hd := hazards.HazardData{
 			Depth:       d,
 			Velocity:    0,
