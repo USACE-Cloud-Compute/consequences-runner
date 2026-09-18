@@ -60,7 +60,7 @@ func InitStormSim(ssi StormSimInfo) (stormsimLifecycleMultiHazardProvider, error
 		process:   gc.ArrivalDepthAndDurationHazardFunction(),
 		bbox:      reach.Bbox,
 		geom:      reach.Geom,
-	}, nil
+	}, err
 }
 
 func eventsSchema() []string {
