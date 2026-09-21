@@ -188,21 +188,18 @@ func (hazP *HdfAdcircHazardProvider) Hazard(l geography.Location) (hazards.Hazar
 		if err != nil {
 			return nil, err
 		}
-		v2 := make([]hazards.CoastalEvent, len(v))
+
 		for i, vi := range v {
 			vc := vi.(hazards.CoastalEvent) // do we need to check success here? vc, ok := ...?
-			v2[i] = vc
+			vf := hazards.CoastalFrequencyEvent{CoastalEvent: vc}
+			vf.SetFrequency(hazP.frequencies[i])
+			h.Append(vf)
 		}
 		hazP.actualComputedStructures++
-		// should this be a global variable?
-		freqs := []float64{0.5, 0.2, 0.1, 0.05, 0.02, 0.01, 0.005, 0.002, 0.001, 0.0002, 0.0001}
-		h.Frequencies = freqs
-		h.Events = v2
-
-		return h, nil
+		return &h, nil
 	}
 	notIn := hazardproviders.NoHazardFoundError{Input: "Point Not In Polygon"}
-	return h, notIn
+	return &h, notIn
 }
 func (hazP *HdfAdcircHazardProvider) HazardBoundary() (geography.BBox, error) {
 	bbox := make([]float64, 4)
@@ -211,10 +208,6 @@ func (hazP *HdfAdcircHazardProvider) HazardBoundary() (geography.BBox, error) {
 	bbox[2] = hazP.ds.MaxX //lower right x
 	bbox[3] = hazP.ds.MinY //lower right y
 	return geography.BBox{Bbox: bbox}, nil
-}
-
-func (hazP *HdfAdcircHazardProvider) Frequencies() []float64 {
-	return hazP.frequencies
 }
 
 func (hazP *HdfAdcircHazardProvider) Close() {

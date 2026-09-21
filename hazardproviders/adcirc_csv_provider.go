@@ -16,6 +16,7 @@ type adcircCSVHazardProvider struct {
 	queryCount               int64
 	actualComputedStructures int64
 	computeStart             time.Time
+	frequencies              []float64
 }
 
 // Init creates and produces an unexported csvHazardProvider
@@ -26,7 +27,9 @@ func InitAdcircCSV(fp string) *adcircCSVHazardProvider {
 		panic(err)
 	}
 	c := time.Now()
-	return &adcircCSVHazardProvider{ds: t, computeStart: c}
+	freqs := []float64{0.5, 0.2, 0.1, 0.05, 0.02, 0.01, 0.005, 0.002, 0.001, 0.0002, 0.0001}
+
+	return &adcircCSVHazardProvider{ds: t, computeStart: c, frequencies: freqs}
 }
 func InitAdcircCSVWithGrd(fp string, grdfp string) (*adcircCSVHazardProvider, error) {
 	// Open the file
@@ -36,7 +39,8 @@ func InitAdcircCSVWithGrd(fp string, grdfp string) (*adcircCSVHazardProvider, er
 		return ret, err
 	}
 	c := time.Now()
-	return &adcircCSVHazardProvider{ds: t, computeStart: c}, nil
+	freqs := []float64{0.5, 0.2, 0.1, 0.05, 0.02, 0.01, 0.005, 0.002, 0.001, 0.0002, 0.0001}
+	return &adcircCSVHazardProvider{ds: t, computeStart: c, frequencies: freqs}, nil
 }
 func InitWithGrdAndWave(grdfp string, swlfp string, hmofp string) *adcircCSVHazardProvider {
 	// Open the file
@@ -62,20 +66,19 @@ func (csv adcircCSVHazardProvider) Hazard(l geography.Location) (hazards.HazardE
 		if err != nil {
 			return nil, err
 		}
-		v2 := make([]hazards.CoastalEvent, len(v))
+
 		for i, vi := range v {
-			vc := vi.(hazards.CoastalEvent) // do we need to check success here? vc, ok := ...?
-			v2[i] = vc
+			vc := vi.(hazards.CoastalEvent)
+			vf := hazards.CoastalFrequencyEvent{CoastalEvent: vc}
+			freq := csv.frequencies[i]
+			vf.SetFrequency(freq)
+			h.Append(vf)
 		}
 		csv.actualComputedStructures++
-		freqs := []float64{0.5, 0.2, 0.1, 0.05, 0.02, 0.01, 0.005, 0.002, 0.001, 0.0002, 0.0001}
-		h.Frequencies = freqs
-		h.Events = v2
-
-		return h, nil
+		return &h, nil
 	}
 	notIn := hazardproviders.NoHazardFoundError{Input: "Point Not In Polygon"}
-	return h, notIn
+	return &h, notIn
 }
 
 func (csv adcircCSVHazardProvider) HazardBoundary() (geography.BBox, error) {

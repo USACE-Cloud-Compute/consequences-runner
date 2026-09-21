@@ -13,7 +13,10 @@ func Test_InitAdcircCSVWithGrd(t *testing.T) {
 	csvFile := "/mnt/drunner/data/test-data.csv"
 	grdFile := "/mnt/drunner/data/test_grid.grd"
 
-	hp := InitAdcircCSVWithGrd(csvFile, grdFile)
+	hp, err := InitAdcircCSVWithGrd(csvFile, grdFile)
+	if err != nil {
+		panic(err)
+	}
 	loc := geography.Location{
 		X: -86.0,
 		Y: 32.0,

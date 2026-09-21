@@ -186,7 +186,7 @@ func (ar *ComputeEventAction) Run() error {
 			pgDB, pgUser, pgPass, pgHost, pgPort, pgSchema,
 		)
 
-		rw, err = lrw.InitSpatialResultsWriter_PSQL(outConnStr, outputLayerName, outputDriver, pgDB)
+		rw, err = crresultswriters.InitSpatialResultsWriter_PSQL(outConnStr, outputLayerName, outputDriver, pgDB)
 		if err != nil {
 			log.Fatalf("Failed to initialize spatial psql result writer: %s\n", err)
 		}
@@ -254,6 +254,9 @@ func (ar *ComputeCoastalEventAction) Run() error {
 		}},
 	}
 	hp, err := hazardproviders.InitMulti(hpi)
+	if err != nil {
+		return err
+	}
 
 	sp, err := structureprovider.InitStructureProviderwithOcctypePath(inventoryPath, tablename, inventoryDriver, damageFunctionPath)
 	sp.SetDeterministic(true)
@@ -276,7 +279,7 @@ func (ar *ComputeCoastalEventAction) Run() error {
 		pgDB, pgUser, pgPass, pgHost, pgPort, pgSchema,
 	)
 
-	rw, err = lrw.InitSpatialResultsWriter_PSQL(outConnStr, outputLayerName, outputDriver, pgDB)
+	rw, err = crresultswriters.InitSpatialResultsWriter_PSQL(outConnStr, outputLayerName, outputDriver, pgDB)
 	if err != nil {
 		log.Fatalf("Failed to initialize spatial psql result writer: %s\n", err)
 	}
@@ -539,20 +542,22 @@ func (ar *ComputeCoastalFrequencyAction) Run() error {
 	grdExt := grdfpParts[len(grdfpParts)-1]
 
 	var abstractHP hazardproviders.HazardProvider
-	defer abstractHP.Close()
-	if grdExt == "csv" {
+	switch grdExt {
+	case "csv":
 		hp, err := lhp.InitAdcircCSVWithGrd(swlFile, grdFile)
 		if err != nil {
 			panic(err)
 		}
 		// do we need to defer hp.Close() or is that covered by the above abstractHp.Close()?
 		abstractHP = hp
-	} else if grdExt == "h5" {
+		defer hp.Close()
+	case "h5":
 		hp, err := lhp.InitAdcircHDF(grdFile, swlFile, hm0File, "Best Estimate AEF")
 		if err != nil {
 			panic(err)
 		}
 		abstractHP = hp
+		defer hp.Close()
 	}
 
 	var abstractSP consequences.StreamProvider
@@ -578,11 +583,7 @@ func (ar *ComputeCoastalFrequencyAction) Run() error {
 	}
 
 	//initalize a results writer
-	//TODO: add more key-value pairs to payload for summary and events results writer details
-	resultsFile := fmt.Sprintf("EAD_consequences_%s", outputFileName)
-
-	rw, err := resultswriters.InitSpatialResultsWriter(resultsFile, "results", outputDriver)
-
+	rw, err := resultswriters.InitSpatialResultsWriter(outputFileName, "results", outputDriver)
 	if err != nil {
 		panic(err)
 	}
