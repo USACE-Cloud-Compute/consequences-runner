@@ -55,7 +55,7 @@ func InitStormSim(ssi StormSimInfo) (stormsimLifecycleMultiHazardProvider, error
 
 	return stormsimLifecycleMultiHazardProvider{
 		arrivals:  add.arrivals,
-		depths:    add.depths,
+		depths:    add.watersurface,
 		durations: add.durations,
 		process:   gc.ArrivalDepthAndDurationHazardFunction(),
 		bbox:      reach.Bbox,
@@ -190,18 +190,18 @@ func parseEventsFile(filepath string, layername string, driver string) (map[stri
 type ADDInfo struct {
 	storm_ids []string
 	arrivals  []time.Time
-	depths    []float64
+	watersurface    []float64
 	durations []float64
 }
 
 func parseResponsesFile(filepath string, layername string, driver string, n int, lifecycle int) (ADDInfo, error) {
 
 	arrivals := make([]time.Time, n)
-	depths := make([]float64, n)
+	watersurface := make([]float64, n)
 	durations := make([]float64, n)
 	ret := ADDInfo{
 		arrivals:  arrivals,
-		depths:    depths,
+		watersurface:    watersurface,
 		durations: durations,
 	}
 
@@ -276,7 +276,7 @@ func parseResponsesFile(filepath string, layername string, driver string, n int,
 				if i > 0 { // can't save previous storm if we're on row 0
 					if curStormLifecycle == lifecycle { // not handling multiple lifecycles currently
 						ret.arrivals[curStormIndex] = curStormStart
-						ret.depths[curStormIndex] = curStormPeakStage
+						ret.watersurface[curStormIndex] = curStormPeakStage
 						duration := curStormEnd.Sub(curStormStart)
 						ret.durations[curStormIndex] = duration.Hours() / 24.0
 						curStormIndex++
@@ -293,7 +293,7 @@ func parseResponsesFile(filepath string, layername string, driver string, n int,
 		}
 	}
 	ret.arrivals[curStormIndex] = curStormStart
-	ret.depths[curStormIndex] = curStormPeakStage
+	ret.watersurface[curStormIndex] = curStormPeakStage
 	duration := curStormEnd.Sub(curStormStart)
 	ret.durations[curStormIndex] = duration.Hours() / 24.0
 	return ret, nil

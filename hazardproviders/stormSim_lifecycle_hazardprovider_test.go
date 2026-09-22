@@ -51,7 +51,7 @@ func Test_ParseResponsesFile(t *testing.T) {
 		time.Date(2042, time.Month(9), 11, 15, 47, 36, 0, time.UTC),
 		time.Date(2042, time.Month(9), 18, 20, 43, 54, 0, time.UTC),
 	}
-	depths_expected := []float64{
+	watersurface_expected := []float64{
 		5.065454720317759e-06, 0.07954816684712816, 0.06067342218875873,
 		7.633939500733733, 0.0003424453866254134, 0.005582318033540606, 0.10717274871617052,
 		0.0007989156854487938, 2.216023976299491, 0.0014245964507591457,
@@ -75,8 +75,8 @@ func Test_ParseResponsesFile(t *testing.T) {
 		} else {
 			fmt.Println("Arrival Correct")
 		}
-		if add.depths[i] != depths_expected[i] {
-			t.Errorf("Fail: Expected %v, got %v", depths_expected[i], add.depths[i])
+		if add.watersurface[i] != watersurface_expected[i] {
+			t.Errorf("Fail: Expected %v, got %v", watersurface_expected[i], add.watersurface[i])
 		} else {
 			fmt.Println("Depth correct")
 		}
