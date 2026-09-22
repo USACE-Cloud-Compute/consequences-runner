@@ -313,20 +313,12 @@ func depthsAboveGround(depths []float64, groundElevation float64) []float64 {
 	return adjusted
 }
 
-// Hazard cannot be answered from a location alone: this provider holds
-// elevations, and a depth needs the structure's ground.
 func (c stormsimLifecycleMultiHazardProvider) Hazard(l geography.Location) (hazards.HazardEvent, error) {
-	return nil, errors.New("stormsim lifecycle provider reports elevations; use HazardAtGround")
-}
-
-// HazardAtGround reports the reach's storm series as depths above one
-// structure's ground surface.
-func (c stormsimLifecycleMultiHazardProvider) HazardAtGround(l geography.Location, groundElevation float64) (hazards.HazardEvent, error) {
 	var hm hazards.ArrivalDepthandDurationEventMulti
 
-	for i, d := range depthsAboveGround(c.depths, groundElevation) {
+	for i, d := range c.depths {
 		hd := hazards.HazardData{
-			Depth:       d,
+			Depth:       d - l.Z,
 			Velocity:    0,
 			ArrivalTime: c.arrivals[i],
 			Erosion:     0,
@@ -347,8 +339,9 @@ func (c stormsimLifecycleMultiHazardProvider) HazardAtGround(l geography.Locatio
 
 	if !c.geom.Contains(test_geom) {
 		return &hm, errors.New("Provided hazard location is outside the reach boundary")
+	} else {
+		return &hm, nil
 	}
-	return &hm, nil
 }
 
 func (c stormsimLifecycleMultiHazardProvider) HazardBoundary() (geography.BBox, error) {
