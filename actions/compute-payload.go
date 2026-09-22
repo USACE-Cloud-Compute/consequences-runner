@@ -489,15 +489,9 @@ func (ar *ComputeCoastalLifecycleAction) Run() error {
 	}
 	fmt.Println(bbox.ToString())
 	abstractSP.ByBbox(bbox, func(f consequences.Receptor) {
-		// StormSim stage is a water-surface elevation, so the structure's own
-		// ground has to come off it before go-consequences samples the damage
-		// functions, which expect depth above ground.
-		groundElevation := 0.0
-		if s, ok := f.(structures.StructureDeterministic); ok {
-			groundElevation = s.GroundElevation
-		}
+
 		//ProvideHazard works off of a geography.Location
-		d, err2 := hp.HazardAtGround(geography.Location{X: f.Location().X, Y: f.Location().Y}, groundElevation)
+		d, err2 := hp.Hazard(f.Location())
 
 		//compute damages based on hazard being able to provide depth
 		if err2 == nil {
