@@ -1,16 +1,14 @@
 module github.com/usace-cloud-compute/consequences-runner
 
-go 1.24
+go 1.27
 
 require (
 	github.com/HydrologicEngineeringCenter/go-statistics v0.0.0-20240126145250-a17483ae0981
-	github.com/USACE/go-consequences v0.0.0-20260303155249-41dfc39dd84d
+	github.com/USACE/go-consequences v0.0.0-20260922171109-00b0b5c80b5d
 	github.com/dewberry/gdal v0.3.4
-	github.com/google/uuid v1.6.0 // indirect
 	github.com/usace-cloud-compute/cc-go-sdk v0.0.0-20251124210849-b455e063a7ea
+	github.com/usace-cloud-compute/filesapi v0.0.0-20251107191432-8084e0da4b5c
 )
-
-require github.com/usace-cloud-compute/filesapi v0.0.0-20251107191432-8084e0da4b5c
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.39.0 // indirect
@@ -35,6 +33,7 @@ require (
 	github.com/bahlo/generic-list-go v0.2.0 // indirect
 	github.com/buger/jsonparser v1.1.1 // indirect
 	github.com/cockroachdb/apd v1.1.0 // indirect
+	github.com/google/uuid v1.6.0 // indirect
 	github.com/invopop/jsonschema v0.13.0 // indirect
 	github.com/leekchan/accounting v1.0.0 // indirect
 	github.com/mailru/easyjson v0.9.1 // indirect
@@ -43,6 +42,6 @@ require (
 	github.com/shopspring/decimal v1.4.0 // indirect
 	github.com/spf13/cast v1.10.0 // indirect
 	github.com/wk8/go-ordered-map/v2 v2.1.8 // indirect
-	gonum.org/v1/gonum v0.16.0 // indirect
+	gonum.org/v1/gonum v0.17.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

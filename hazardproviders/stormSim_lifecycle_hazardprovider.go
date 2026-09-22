@@ -64,7 +64,7 @@ func InitStormSim(ssi StormSimInfo) (stormsimLifecycleMultiHazardProvider, error
 }
 
 func eventsSchema() []string {
-	s := []string{"location_id", "lifecycle", "year_offset", "year", "month", "day", "hour", "timestamp", "storm_id"}
+	s := []string{"location_id", "lifecycle", "stormevent_id", "year_offset", "year", "month", "day", "hour", "timestamp", "storm_id"}
 	return s
 }
 
@@ -168,10 +168,10 @@ func parseEventsFile(filepath string, layername string, driver string) (map[stri
 	for range fc {
 		feat := layer.NextFeature()
 		if feat != nil {
-			//NOTE: "location_id", "lifecycle", "year_offset", "year", "month", "day", "hour", "timestamp", "storm_id"
+			//NOTE: "location_id", "lifecycle","stormevent_id", "year_offset", "year", "month", "day", "hour", "timestamp", "storm_id"
 			loc_id := feat.FieldAsString(sIDX[0])
 			lifecycle := feat.FieldAsInteger(sIDX[1])
-			storm_id := feat.FieldAsString(sIDX[8])
+			storm_id := feat.FieldAsString(sIDX[2])
 
 			if ret[loc_id] == nil {
 				ret[loc_id] = make(map[int][]string)
