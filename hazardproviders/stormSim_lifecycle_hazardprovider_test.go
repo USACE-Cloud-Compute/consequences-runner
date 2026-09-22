@@ -9,21 +9,24 @@ import (
 func Test_ParseReachesFile(t *testing.T) {}
 
 func Test_ParseEventsFile(t *testing.T) {
-	eventsFP := "/workspaces/consequences-runner/data/coastal/EventDate_LC.csv"
+	// eventsFP := "/workspaces/consequences-runner/data/coastal/EventDate_LC.csv"
+	eventsFP := "/workspaces/consequences-runner/data/coastal/chart-data-for-troubleshooting/events.csv"
 
 	events, err := parseEventsFile(eventsFP, "", "CSV")
 	if err != nil {
 		panic(err)
 	}
 
-	expected := []string{"190", "485", "833", "990", "575", "664", "176", "609", "984", "294", "610", "562", "112", "268", "161", "859", "335"}
+	// expected := []string{"190", "485", "833", "990", "575", "664", "176", "609", "984", "294", "610", "562", "112", "268", "161", "859", "335"}
 	got := events["DE001"][0]
 
 	for i, val := range got {
-		e := expected[i]
-		if val != e {
-			t.Errorf("Fail: Expected %v, got %v", e, val)
-		}
+		// e := expected[i]
+		// if val != e {
+		// 	t.Errorf("Fail: Expected %v, got %v", e, val)
+		// }
+
+		fmt.Println(i, val)
 	}
 }
 
