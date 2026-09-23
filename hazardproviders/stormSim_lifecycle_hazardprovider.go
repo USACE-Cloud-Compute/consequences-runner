@@ -55,7 +55,7 @@ func InitStormSim(ssi StormSimInfo) (stormsimLifecycleMultiHazardProvider, error
 
 	return stormsimLifecycleMultiHazardProvider{
 		arrivals:  add.arrivals,
-		depths:    add.depths,
+		depths:    add.watersurface,
 		durations: add.durations,
 		process:   gc.ArrivalDepthAndDurationHazardFunction(),
 		bbox:      reach.Bbox,
@@ -64,7 +64,7 @@ func InitStormSim(ssi StormSimInfo) (stormsimLifecycleMultiHazardProvider, error
 }
 
 func eventsSchema() []string {
-	s := []string{"location_id", "lifecycle", "year_offset", "year", "month", "day", "hour", "timestamp", "storm_id"}
+	s := []string{"location_id", "lifecycle", "stormevent_id", "year_offset", "year", "month", "day", "hour", "timestamp", "storm_id"}
 	return s
 }
 
@@ -168,10 +168,10 @@ func parseEventsFile(filepath string, layername string, driver string) (map[stri
 	for range fc {
 		feat := layer.NextFeature()
 		if feat != nil {
-			//NOTE: "location_id", "lifecycle", "year_offset", "year", "month", "day", "hour", "timestamp", "storm_id"
+			//NOTE: "location_id", "lifecycle","stormevent_id", "year_offset", "year", "month", "day", "hour", "timestamp", "storm_id"
 			loc_id := feat.FieldAsString(sIDX[0])
 			lifecycle := feat.FieldAsInteger(sIDX[1])
-			storm_id := feat.FieldAsString(sIDX[8])
+			storm_id := feat.FieldAsString(sIDX[2])
 
 			if ret[loc_id] == nil {
 				ret[loc_id] = make(map[int][]string)
@@ -190,18 +190,18 @@ func parseEventsFile(filepath string, layername string, driver string) (map[stri
 type ADDInfo struct {
 	storm_ids []string
 	arrivals  []time.Time
-	depths    []float64
+	watersurface    []float64
 	durations []float64
 }
 
 func parseResponsesFile(filepath string, layername string, driver string, n int, lifecycle int) (ADDInfo, error) {
 
 	arrivals := make([]time.Time, n)
-	depths := make([]float64, n)
+	watersurface := make([]float64, n)
 	durations := make([]float64, n)
 	ret := ADDInfo{
 		arrivals:  arrivals,
-		depths:    depths,
+		watersurface:    watersurface,
 		durations: durations,
 	}
 
@@ -276,7 +276,7 @@ func parseResponsesFile(filepath string, layername string, driver string, n int,
 				if i > 0 { // can't save previous storm if we're on row 0
 					if curStormLifecycle == lifecycle { // not handling multiple lifecycles currently
 						ret.arrivals[curStormIndex] = curStormStart
-						ret.depths[curStormIndex] = curStormPeakStage
+						ret.watersurface[curStormIndex] = curStormPeakStage
 						duration := curStormEnd.Sub(curStormStart)
 						ret.durations[curStormIndex] = duration.Hours() / 24.0
 						curStormIndex++
@@ -293,7 +293,7 @@ func parseResponsesFile(filepath string, layername string, driver string, n int,
 		}
 	}
 	ret.arrivals[curStormIndex] = curStormStart
-	ret.depths[curStormIndex] = curStormPeakStage
+	ret.watersurface[curStormIndex] = curStormPeakStage
 	duration := curStormEnd.Sub(curStormStart)
 	ret.durations[curStormIndex] = duration.Hours() / 24.0
 	return ret, nil
@@ -313,20 +313,12 @@ func depthsAboveGround(depths []float64, groundElevation float64) []float64 {
 	return adjusted
 }
 
-// Hazard cannot be answered from a location alone: this provider holds
-// elevations, and a depth needs the structure's ground.
 func (c stormsimLifecycleMultiHazardProvider) Hazard(l geography.Location) (hazards.HazardEvent, error) {
-	return nil, errors.New("stormsim lifecycle provider reports elevations; use HazardAtGround")
-}
-
-// HazardAtGround reports the reach's storm series as depths above one
-// structure's ground surface.
-func (c stormsimLifecycleMultiHazardProvider) HazardAtGround(l geography.Location, groundElevation float64) (hazards.HazardEvent, error) {
 	var hm hazards.ArrivalDepthandDurationEventMulti
 
-	for i, d := range depthsAboveGround(c.depths, groundElevation) {
+	for i, d := range c.depths {
 		hd := hazards.HazardData{
-			Depth:       d,
+			Depth:       d - l.Z,
 			Velocity:    0,
 			ArrivalTime: c.arrivals[i],
 			Erosion:     0,
@@ -347,8 +339,9 @@ func (c stormsimLifecycleMultiHazardProvider) HazardAtGround(l geography.Locatio
 
 	if !c.geom.Contains(test_geom) {
 		return &hm, errors.New("Provided hazard location is outside the reach boundary")
+	} else {
+		return &hm, nil
 	}
-	return &hm, nil
 }
 
 func (c stormsimLifecycleMultiHazardProvider) HazardBoundary() (geography.BBox, error) {
