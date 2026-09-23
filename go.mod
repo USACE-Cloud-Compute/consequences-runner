@@ -1,19 +1,14 @@
 module github.com/usace-cloud-compute/consequences-runner
 
-go 1.24
+go 1.27
 
 require (
 	github.com/HydrologicEngineeringCenter/go-statistics v0.0.0-20240126145250-a17483ae0981
-	github.com/USACE/go-consequences v0.0.0-20260522185708-ff58ac0a4e27
+	github.com/USACE/go-consequences v0.0.0-20260923154715-e7fcc0f6854b
 	github.com/dewberry/gdal v0.3.4
-	github.com/google/uuid v1.6.0 // indirect
-	github.com/usace-cloud-compute/cc-go-sdk v0.0.0-20251124210849-b455e063a7ea
-)
-
-require (
-	github.com/HydrologicEngineeringCenter/go-coastal v0.0.0-20241114143657-afedfa6d3c9c
 	github.com/furstenheim/ConcaveHull v0.0.0-20181124172300-79de6d753046
 	github.com/tidwall/rtree v1.10.0
+	github.com/usace-cloud-compute/cc-go-sdk v0.0.0-20251124210849-b455e063a7ea
 	github.com/usace-cloud-compute/filesapi v0.0.0-20251107191432-8084e0da4b5c
 	github.com/usace/go-hdf5 v0.0.0-20230626152743-72d0ae21fd0c
 )
@@ -43,6 +38,7 @@ require (
 	github.com/cockroachdb/apd v1.1.0 // indirect
 	github.com/furstenheim/SimpleRTree v0.0.0-20190118211408-bef8d7c97e9c // indirect
 	github.com/furstenheim/go-convex-hull-2d v0.0.0-20181121204724-08788ab09726 // indirect
+	github.com/google/uuid v1.6.0 // indirect
 	github.com/invopop/jsonschema v0.13.0 // indirect
 	github.com/leekchan/accounting v1.0.0 // indirect
 	github.com/mailru/easyjson v0.9.1 // indirect
