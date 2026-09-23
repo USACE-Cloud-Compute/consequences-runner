@@ -61,7 +61,7 @@ func InitStormSim(ssi StormSimInfo) (stormsimLifecycleMultiHazardProvider, error
 	return stormsimLifecycleMultiHazardProvider{
 		storm_ids: add.storm_ids,
 		arrivals:  add.arrivals,
-		depths:    add.depths,
+		depths:    add.watersurface,
 		durations: add.durations,
 		process:   gc.ArrivalDepthAndDurationHazardFunction(),
 		bbox:      reach.Bbox,
@@ -193,18 +193,25 @@ func parseEventsFile(filepath string, layername string, driver string) (map[stri
 	return ret, nil
 }
 
+type ADDInfo struct {
+	storm_ids    []string
+	arrivals     []time.Time
+	watersurface []float64
+	durations    []float64
+}
+
 func parseResponsesFile(filepath string, layername string, driver string, n int, lifecycle int) (ADDInfo, error) {
 
 	storm_ids := make([]string, n)
 	arrivals := make([]time.Time, n)
-	depths := make([]float64, n)
+	watersurface := make([]float64, n)
 	durations := make([]float64, n)
 
 	ret := ADDInfo{
-		storm_ids: storm_ids,
-		arrivals:  arrivals,
-		depths:    depths,
-		durations: durations,
+		storm_ids:    storm_ids,
+		arrivals:     arrivals,
+		watersurface: watersurface,
+		durations:    durations,
 	}
 
 	d := gdal.OGRDriverByName(driver)
@@ -279,7 +286,7 @@ func parseResponsesFile(filepath string, layername string, driver string, n int,
 					if curStormLifecycle == lifecycle { // not handling multiple lifecycles currently
 						ret.storm_ids[curStormIndex] = curStormID
 						ret.arrivals[curStormIndex] = curStormStart
-						ret.depths[curStormIndex] = curStormPeakStage
+						ret.watersurface[curStormIndex] = curStormPeakStage
 						duration := curStormEnd.Sub(curStormStart)
 						ret.durations[curStormIndex] = duration.Hours() / 24.0
 						curStormIndex++
@@ -297,7 +304,7 @@ func parseResponsesFile(filepath string, layername string, driver string, n int,
 	}
 	ret.storm_ids[curStormIndex] = curStormID
 	ret.arrivals[curStormIndex] = curStormStart
-	ret.depths[curStormIndex] = curStormPeakStage
+	ret.watersurface[curStormIndex] = curStormPeakStage
 	duration := curStormEnd.Sub(curStormStart)
 	ret.durations[curStormIndex] = duration.Hours() / 24.0
 	return ret, nil
@@ -307,12 +314,22 @@ func (c stormsimLifecycleMultiHazardProvider) Close() {
 	// what goes here after switching to using gdal?
 }
 
+// depthsAboveGround converts the reach's water-surface elevations into depths
+// at one structure.
+func depthsAboveGround(depths []float64, groundElevation float64) []float64 {
+	adjusted := make([]float64, len(depths))
+	for i, d := range depths {
+		adjusted[i] = d - groundElevation
+	}
+	return adjusted
+}
+
 func (c stormsimLifecycleMultiHazardProvider) Hazard(l geography.Location) (hazards.HazardEvent, error) {
 	var hm hazards.ArrivalDepthandDurationEventMulti
 
 	for i, d := range c.depths {
 		hd := hazards.HazardData{
-			Depth:       d,
+			Depth:       d - l.Z,
 			Velocity:    0,
 			ArrivalTime: c.arrivals[i],
 			Erosion:     0,
@@ -333,8 +350,9 @@ func (c stormsimLifecycleMultiHazardProvider) Hazard(l geography.Location) (haza
 
 	if !c.geom.Contains(test_geom) {
 		return &hm, errors.New("Provided hazard location is outside the reach boundary")
+	} else {
+		return &hm, nil
 	}
-	return &hm, nil
 }
 
 func (c stormsimLifecycleMultiHazardProvider) HazardBoundary() (geography.BBox, error) {

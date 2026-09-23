@@ -40,6 +40,14 @@ func (lrw *lifecycleResultsWriter) Write(r consequences.Result) {
 	if err != nil {
 		panic(err)
 	}
+	x, err := r.Fetch("x")
+	if err != nil {
+		panic(err)
+	}
+	y, err := r.Fetch("y")
+	if err != nil {
+		panic(err)
+	}
 	e, err := r.Fetch("hazard results")
 	if err != nil {
 		panic(err)
@@ -53,8 +61,8 @@ func (lrw *lifecycleResultsWriter) Write(r consequences.Result) {
 		}
 		stormevent_id := he.(hazards.HazardEvent).Qualitative()
 
-		hi := append([]string{"fd_id", "stormevent_id"}, er.Headers...)
-		ri := append([]interface{}{fd_id, stormevent_id}, er.Result...)
+		hi := append([]string{"fd_id", "stormevent_id", "x", "y"}, er.Headers...)
+		ri := append([]interface{}{fd_id, stormevent_id, x, y}, er.Result...)
 		lrw.EventsWriter.Write(consequences.Result{Headers: hi, Result: ri})
 	}
 

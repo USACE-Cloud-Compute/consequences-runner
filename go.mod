@@ -50,6 +50,6 @@ require (
 	github.com/spf13/cast v1.10.0 // indirect
 	github.com/tidwall/geoindex v1.7.0 // indirect
 	github.com/wk8/go-ordered-map/v2 v2.1.8 // indirect
-	gonum.org/v1/gonum v0.16.0 // indirect
+	gonum.org/v1/gonum v0.17.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
