@@ -10,7 +10,7 @@ require (
 	github.com/tidwall/rtree v1.10.0
 	github.com/usace-cloud-compute/cc-go-sdk v0.0.0-20251124210849-b455e063a7ea
 	github.com/usace-cloud-compute/filesapi v0.0.0-20251107191432-8084e0da4b5c
-	github.com/usace/go-hdf5 v0.0.0-20230626152743-72d0ae21fd0c
+	github.com/usace/go-hdf5 v0.0.0-20251010161119-8689246c233d
 )
 
 require (

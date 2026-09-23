@@ -3,10 +3,6 @@ gioui.org v0.0.0-20210308172011-57750fc8a0a6/go.mod h1:RSH6KIUZ0p2xy5zHDxgAM4zum
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
 github.com/HydrologicEngineeringCenter/go-statistics v0.0.0-20240126145250-a17483ae0981 h1:JFLYdHvF3mPN56AkXeaWm41bQ9eJFuSceCtXXtMWTNI=
 github.com/HydrologicEngineeringCenter/go-statistics v0.0.0-20240126145250-a17483ae0981/go.mod h1:ABek1cDzTXjGA4uwrB91/NriEROj8AnUDaX7xU+1L2E=
-github.com/USACE/go-consequences v0.0.0-20260917183208-96cad095e8d1 h1:s+FSiY+1jBVVsHj/qNV+U1/Xtdp0rMbligz7kExv3gM=
-github.com/USACE/go-consequences v0.0.0-20260917183208-96cad095e8d1/go.mod h1:+HMvu5PLsam+TS7GCpeiraeCWjwD04/hcgz85kuQTM4=
-github.com/USACE/go-consequences v0.0.0-20260921141214-9382b963ba3d h1:gQYIdE+kSgGQD7yza4IX1q/z6AEJ4WndhTrT4uL3pOU=
-github.com/USACE/go-consequences v0.0.0-20260921141214-9382b963ba3d/go.mod h1:+HMvu5PLsam+TS7GCpeiraeCWjwD04/hcgz85kuQTM4=
 github.com/USACE/go-consequences v0.0.0-20260923154715-e7fcc0f6854b h1:1FRfnV/ijryHxFN7lNf9JLK6zrahigqSkYBE5iM/NY8=
 github.com/USACE/go-consequences v0.0.0-20260923154715-e7fcc0f6854b/go.mod h1:IKafUURbdUVR6aNAYbE1V7AvWKFhDrlVg/MKZs2wmmE=
 github.com/ajstarks/svgo v0.0.0-20180226025133-644b8db467af/go.mod h1:K08gAheRH3/J6wwsYMMT4xOr94bZjxIelGM0+d/wbFw=
@@ -133,6 +129,8 @@ github.com/usace-cloud-compute/filesapi v0.0.0-20251107191432-8084e0da4b5c h1:1S
 github.com/usace-cloud-compute/filesapi v0.0.0-20251107191432-8084e0da4b5c/go.mod h1:6iMo7JYrqbf0dfSVGqrAJfoVhi2hKJysD5o8mXi0XhI=
 github.com/usace/go-hdf5 v0.0.0-20230626152743-72d0ae21fd0c h1:JIbvPaU9Z+3Z7tFyeyU1GlN+5vGfpuvbmRVwXhlLO04=
 github.com/usace/go-hdf5 v0.0.0-20230626152743-72d0ae21fd0c/go.mod h1:7UnGKc/bXuT03VYfEx/Od6Jq0zmBMoH0jEVMESxnyLg=
+github.com/usace/go-hdf5 v0.0.0-20251010161119-8689246c233d h1:3mGR5J/prBCCS9H3NeeR6zO2sH4/PBW71pR+DCIlJfY=
+github.com/usace/go-hdf5 v0.0.0-20251010161119-8689246c233d/go.mod h1:7UnGKc/bXuT03VYfEx/Od6Jq0zmBMoH0jEVMESxnyLg=
 github.com/wk8/go-ordered-map/v2 v2.1.8 h1:5h/BUHu93oj4gIdvHHHGsScSTMijfx5PeYkE/fJgbpc=
 github.com/wk8/go-ordered-map/v2 v2.1.8/go.mod h1:5nJHM5DyteebpVlHnWMV0rPz6Zp7+xBAnxjb1X5vnTw=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
@@ -170,8 +168,6 @@ golang.org/x/xerrors v0.0.0-20190717185122-a985d3407aa7/go.mod h1:I/5z698sn9Ka8T
 gonum.org/v1/gonum v0.0.0-20180816165407-929014505bf4/go.mod h1:Y+Yx5eoAFn32cQvJDxZx5Dpnq+c3wtXuadVZAcxbbBo=
 gonum.org/v1/gonum v0.8.2/go.mod h1:oe/vMfY3deqTw+1EZJhuvEW2iwGF1bW9wwu7XCu0+v0=
 gonum.org/v1/gonum v0.9.3/go.mod h1:TZumC3NeyVQskjXqmyWt4S3bINhy7B4eYwW69EbyX+0=
-gonum.org/v1/gonum v0.16.0 h1:5+ul4Swaf3ESvrOnidPp4GZbzf0mxVQpDCYUQE7OJfk=
-gonum.org/v1/gonum v0.16.0/go.mod h1:fef3am4MQ93R2HHpKnLk4/Tbh/s0+wqD5nfa6Pnwy4E=
 gonum.org/v1/gonum v0.17.0 h1:VbpOemQlsSMrYmn7T2OUvQ4dqxQXU+ouZFQsZOx50z4=
 gonum.org/v1/gonum v0.17.0/go.mod h1:El3tOrEuMpv2UdMrbNlKEh9vd86bmQ6vqIcDwxEOc1E=
 gonum.org/v1/netlib v0.0.0-20190313105609-8cb42192e0e0/go.mod h1:wa6Ws7BG/ESfp6dHfk7C6KdzKA7wR7u/rKwOGE66zvw=
