@@ -35,10 +35,10 @@ type StormSimInfo struct {
 	Lifecycle          int
 }
 type ADDInfo struct {
-	storm_ids []string
-	arrivals  []time.Time
-	depths    []float64
-	durations []float64
+	storm_ids    []string
+	arrivals     []time.Time
+	watersurface []float64
+	durations    []float64
 }
 
 func InitStormSim(ssi StormSimInfo) (stormsimLifecycleMultiHazardProvider, error) {
@@ -191,13 +191,6 @@ func parseEventsFile(filepath string, layername string, driver string) (map[stri
 	}
 
 	return ret, nil
-}
-
-type ADDInfo struct {
-	storm_ids    []string
-	arrivals     []time.Time
-	watersurface []float64
-	durations    []float64
 }
 
 func parseResponsesFile(filepath string, layername string, driver string, n int, lifecycle int) (ADDInfo, error) {

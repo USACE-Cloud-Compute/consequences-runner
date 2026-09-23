@@ -20,12 +20,10 @@ func Test_ParseEventsFile(t *testing.T) {
 	got := events["DE001"][0]
 
 	for i, val := range got {
-		// e := expected[i]
-		// if val != e {
-		// 	t.Errorf("Fail: Expected %v, got %v", e, val)
-		// }
-
-		fmt.Println(i, val)
+		e := expected[i]
+		if val != e {
+			t.Errorf("Fail: Expected %v, got %v", e, val)
+		}
 	}
 }
 
