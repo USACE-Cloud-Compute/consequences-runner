@@ -4,7 +4,7 @@ go 1.27
 
 require (
 	github.com/HydrologicEngineeringCenter/go-statistics v0.0.0-20240126145250-a17483ae0981
-	github.com/USACE/go-consequences v0.0.0-20260923200008-03d218f052cf
+	github.com/USACE/go-consequences v0.0.0-20260924152751-988c72c48477
 	github.com/dewberry/gdal v0.3.4
 	github.com/usace-cloud-compute/cc-go-sdk v0.0.0-20251124210849-b455e063a7ea
 	github.com/usace-cloud-compute/filesapi v0.0.0-20251107191432-8084e0da4b5c
