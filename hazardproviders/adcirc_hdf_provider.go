@@ -253,17 +253,15 @@ func (hzp *HdfAdcircHazardBuilder) buildTin() *geometry.Tin {
 			tr.Insert(e.LowerLeft.ToXY(), e.UpperRight.ToXY(), triangle)
 			if e.Max()[0] > maxx {
 				maxx = e.Max()[0]
-			} else {
-				if e.Min()[0] < minx {
-					minx = e.Min()[0]
-				}
+			}
+			if e.Min()[0] < minx {
+				minx = e.Min()[0]
 			}
 			if e.Max()[1] > maxy {
 				maxy = e.Max()[1]
-			} else {
-				if e.Min()[1] < miny {
-					miny = e.Min()[1]
-				}
+			}
+			if e.Min()[1] < miny {
+				miny = e.Min()[1]
 			}
 			ps = append(ps, triangle.Points()...)
 			kept += 1
