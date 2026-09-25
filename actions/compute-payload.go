@@ -472,8 +472,8 @@ func (ar *ComputeCoastalLifecycleAction) Run() error {
 
 	//initalize a results writer
 	//TODO: add more key-value pairs to payload for summary and events results writer details
-	summaryResultsFile := fmt.Sprintf("summary_%s", outputFileName)
-	eventsResultsFile := fmt.Sprintf("events_%s", outputFileName)
+	summaryResultsFile := fmt.Sprintf("%s/summary_%s", localData, outputFileName)
+	eventsResultsFile := fmt.Sprintf("%s/events_%s", localData, outputFileName)
 	rw, err := crresultswriters.InitLifecycleResultsWriter(summaryResultsFile, "summary_results", outputDriver, eventsResultsFile, "event_results", outputDriver)
 	if err != nil {
 		panic(err)
