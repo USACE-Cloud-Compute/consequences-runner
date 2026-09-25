@@ -4,7 +4,7 @@ go 1.27
 
 require (
 	github.com/HydrologicEngineeringCenter/go-statistics v0.0.0-20240126145250-a17483ae0981
-	github.com/USACE/go-consequences v0.0.0-20260923154715-e7fcc0f6854b
+	github.com/USACE/go-consequences v0.0.0-20260925171900-1d1a23434016
 	github.com/dewberry/gdal v0.3.4
 	github.com/furstenheim/ConcaveHull v0.0.0-20181124172300-79de6d753046
 	github.com/tidwall/rtree v1.10.0
