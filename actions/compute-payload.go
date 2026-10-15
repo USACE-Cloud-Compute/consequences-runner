@@ -456,7 +456,7 @@ func (ar *ComputeCoastalLifecycleAction) Run() error {
 		if err != nil {
 			return err
 		}
-		fmt.Sprintln(sp.FilePath)
+		fmt.Println(sp.FilePath)
 		// sr = sp.SpatialReference()
 		abstractSP = sp
 	} else {
@@ -465,7 +465,7 @@ func (ar *ComputeCoastalLifecycleAction) Run() error {
 		if err != nil {
 			return err
 		}
-		fmt.Sprintln(sp.FilePath)
+		fmt.Println(sp.FilePath)
 		// sr = sp.SpatialReference()
 		abstractSP = sp
 	}

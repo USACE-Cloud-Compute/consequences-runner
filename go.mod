@@ -3,8 +3,8 @@ module github.com/usace-cloud-compute/consequences-runner
 go 1.27
 
 require (
-	github.com/HydrologicEngineeringCenter/go-statistics v0.0.0-20240126145250-a17483ae0981
-	github.com/USACE/go-consequences v0.0.0-20260924152751-988c72c48477
+	github.com/HydrologicEngineeringCenter/go-statistics v0.0.0-20261015125231-029bb81f1048
+	github.com/USACE/go-consequences v0.0.0-20261015130757-687d575d3a8e
 	github.com/dewberry/gdal v0.3.4
 	github.com/usace-cloud-compute/cc-go-sdk v0.0.0-20251124210849-b455e063a7ea
 	github.com/usace-cloud-compute/filesapi v0.0.0-20251107191432-8084e0da4b5c
@@ -39,7 +39,7 @@ require (
 	github.com/mailru/easyjson v0.9.1 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/shopspring/decimal v1.4.0 // indirect
+	github.com/shopspring/decimal v1.5.0 // indirect
 	github.com/spf13/cast v1.10.0 // indirect
 	github.com/wk8/go-ordered-map/v2 v2.1.8 // indirect
 	gonum.org/v1/gonum v0.17.0 // indirect
