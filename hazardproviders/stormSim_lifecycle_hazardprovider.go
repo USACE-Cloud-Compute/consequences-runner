@@ -13,6 +13,7 @@ import (
 
 type stormsimLifecycleMultiHazardProvider struct {
 	// specify drivers for each?
+	storm_ids []string
 	arrivals  []time.Time
 	depths    []float64
 	durations []float64
@@ -20,8 +21,6 @@ type stormsimLifecycleMultiHazardProvider struct {
 	bbox      geography.BBox
 	geom      gdal.Geometry
 }
-
-// create struct to hold the arguments and
 
 type StormSimInfo struct {
 	EventsFP           string
@@ -34,6 +33,12 @@ type StormSimInfo struct {
 	ReachesDriver      string
 	ReachesLayername   string
 	Lifecycle          int
+}
+type ADDInfo struct {
+	storm_ids    []string
+	arrivals     []time.Time
+	watersurface []float64
+	durations    []float64
 }
 
 func InitStormSim(ssi StormSimInfo) (stormsimLifecycleMultiHazardProvider, error) {
@@ -54,8 +59,9 @@ func InitStormSim(ssi StormSimInfo) (stormsimLifecycleMultiHazardProvider, error
 	add, err := parseResponsesFile(ssi.ResponsesFP, ssi.ResponsesLayername, ssi.ResponsesDriver, len(reachevents), ssi.Lifecycle)
 
 	return stormsimLifecycleMultiHazardProvider{
+		storm_ids: add.storm_ids,
 		arrivals:  add.arrivals,
-		depths:    add.depths,
+		depths:    add.watersurface,
 		durations: add.durations,
 		process:   gc.ArrivalDepthAndDurationHazardFunction(),
 		bbox:      reach.Bbox,
@@ -64,7 +70,7 @@ func InitStormSim(ssi StormSimInfo) (stormsimLifecycleMultiHazardProvider, error
 }
 
 func eventsSchema() []string {
-	s := []string{"location_id", "lifecycle", "year_offset", "year", "month", "day", "hour", "timestamp", "storm_id"}
+	s := []string{"location_id", "lifecycle", "stormevent_id", "year_offset", "year", "month", "day", "hour", "timestamp", "storm_id"}
 	return s
 }
 
@@ -168,10 +174,10 @@ func parseEventsFile(filepath string, layername string, driver string) (map[stri
 	for range fc {
 		feat := layer.NextFeature()
 		if feat != nil {
-			//NOTE: "location_id", "lifecycle", "year_offset", "year", "month", "day", "hour", "timestamp", "storm_id"
+			//NOTE: "location_id", "lifecycle", "stormevent_id", "year_offset", "year", "month", "day", "hour", "timestamp", "storm_id"
 			loc_id := feat.FieldAsString(sIDX[0])
 			lifecycle := feat.FieldAsInteger(sIDX[1])
-			storm_id := feat.FieldAsString(sIDX[8])
+			storm_id := feat.FieldAsString(sIDX[2])
 
 			if ret[loc_id] == nil {
 				ret[loc_id] = make(map[int][]string)
@@ -187,22 +193,18 @@ func parseEventsFile(filepath string, layername string, driver string) (map[stri
 	return ret, nil
 }
 
-type ADDInfo struct {
-	storm_ids []string
-	arrivals  []time.Time
-	depths    []float64
-	durations []float64
-}
-
 func parseResponsesFile(filepath string, layername string, driver string, n int, lifecycle int) (ADDInfo, error) {
 
+	storm_ids := make([]string, n)
 	arrivals := make([]time.Time, n)
-	depths := make([]float64, n)
+	watersurface := make([]float64, n)
 	durations := make([]float64, n)
+
 	ret := ADDInfo{
-		arrivals:  arrivals,
-		depths:    depths,
-		durations: durations,
+		storm_ids:    storm_ids,
+		arrivals:     arrivals,
+		watersurface: watersurface,
+		durations:    durations,
 	}
 
 	d := gdal.OGRDriverByName(driver)
@@ -259,7 +261,7 @@ func parseResponsesFile(filepath string, layername string, driver string, n int,
 				}
 			}
 
-			storm_id := feat.FieldAsString(sIDX[2])
+			storm_id := feat.FieldAsString(sIDX[2]) // This is the stormevent_id which is guaranteed to be unique
 			lifecycle_i := feat.FieldAsInteger(sIDX[4])
 			//TODO: handle NA values for stage
 			stage_i := feat.FieldAsFloat64(sIDX[5])
@@ -275,8 +277,9 @@ func parseResponsesFile(filepath string, layername string, driver string, n int,
 				// save results from previous storm
 				if i > 0 { // can't save previous storm if we're on row 0
 					if curStormLifecycle == lifecycle { // not handling multiple lifecycles currently
+						ret.storm_ids[curStormIndex] = curStormID
 						ret.arrivals[curStormIndex] = curStormStart
-						ret.depths[curStormIndex] = curStormPeakStage
+						ret.watersurface[curStormIndex] = curStormPeakStage
 						duration := curStormEnd.Sub(curStormStart)
 						ret.durations[curStormIndex] = duration.Hours() / 24.0
 						curStormIndex++
@@ -292,8 +295,9 @@ func parseResponsesFile(filepath string, layername string, driver string, n int,
 			}
 		}
 	}
+	ret.storm_ids[curStormIndex] = curStormID
 	ret.arrivals[curStormIndex] = curStormStart
-	ret.depths[curStormIndex] = curStormPeakStage
+	ret.watersurface[curStormIndex] = curStormPeakStage
 	duration := curStormEnd.Sub(curStormStart)
 	ret.durations[curStormIndex] = duration.Hours() / 24.0
 	return ret, nil
@@ -303,19 +307,29 @@ func (c stormsimLifecycleMultiHazardProvider) Close() {
 	// what goes here after switching to using gdal?
 }
 
+// depthsAboveGround converts the reach's water-surface elevations into depths
+// at one structure.
+func depthsAboveGround(depths []float64, groundElevation float64) []float64 {
+	adjusted := make([]float64, len(depths))
+	for i, d := range depths {
+		adjusted[i] = d - groundElevation
+	}
+	return adjusted
+}
+
 func (c stormsimLifecycleMultiHazardProvider) Hazard(l geography.Location) (hazards.HazardEvent, error) {
 	var hm hazards.ArrivalDepthandDurationEventMulti
 
 	for i, d := range c.depths {
 		hd := hazards.HazardData{
-			Depth:       d,
+			Depth:       d - l.Z,
 			Velocity:    0,
 			ArrivalTime: c.arrivals[i],
 			Erosion:     0,
 			Duration:    c.durations[i],
 			WaveHeight:  0,
 			Salinity:    false,
-			Qualitative: "",
+			Qualitative: c.storm_ids[i], // Will using this field break something else? (original value = "")
 		}
 		var h hazards.HazardEvent
 		h, err := c.process(hd, h)
@@ -329,8 +343,9 @@ func (c stormsimLifecycleMultiHazardProvider) Hazard(l geography.Location) (haza
 
 	if !c.geom.Contains(test_geom) {
 		return &hm, errors.New("Provided hazard location is outside the reach boundary")
+	} else {
+		return &hm, nil
 	}
-	return &hm, nil
 }
 
 func (c stormsimLifecycleMultiHazardProvider) HazardBoundary() (geography.BBox, error) {

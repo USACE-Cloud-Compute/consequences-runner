@@ -1,4 +1,4 @@
-FROM --platform=linux/amd64 debian:bullseye
+FROM ghcr.io/osgeo/gdal:ubuntu-full-3.13.3
 
 ENV TZ=America/New_York
 ENV PATH=/go/bin:$PATH
@@ -10,18 +10,9 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone &
     mkdir -p /src/go &&\
     apt update &&\
     apt -y install build-essential &&\
-    apt -y install gdal-bin gdal-data libgdal-dev &&\
+	apt -y install pkg-config &&\
     apt -y install wget &&\
-    apt -y install curl &&\
-    wget https://go.dev/dl/go1.24.5.linux-amd64.tar.gz -P / &&\
-    tar -xvzf /go1.24.5.linux-amd64.tar.gz -C / &&\
-    apt -y install vim &&\
-    apt -y install vim-airline vim-ale vim-fugitive &&\
+    wget https://go.dev/dl/go1.27.0.linux-amd64.tar.gz -P / &&\
+    tar -xvzf /go1.27.0.linux-amd64.tar.gz -C / &&\
     apt -y install git &&\
-    apt -y install unzip &&\
-    apt -y install locales locales-all &&\
-    apt -y install powerline &&\
-    apt -y install fish &&\
-    apt -y install htop &&\
-    curl https://raw.githubusercontent.com/oh-my-fish/oh-my-fish/master/bin/install | fish &&\
-    echo 'source $VIMRUNTIME/defaults.vim\npackadd! ale\nset number\nset tabstop=4\nset autoindent\nset cursorline\nset hlsearch\ncolo torte' > ~/.vimrc
+    apt -y install libhdf5-serial-dev
